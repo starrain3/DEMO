@@ -199,8 +199,20 @@
             VS Code 內部可能同時存在數十個 Webview Target（如延伸模組面板、設定檔、終端機等）。Bridge 不採用易失效的靜態 URL，而是實作「**DOM 語義特徵探針**」，主動探索每個候選 Target 是否存在 <code>[aria-label="Message input"]</code>。
           </div>
 
+          <!-- Diagram Action Bar -->
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs text-slate-400 font-medium flex items-center gap-1.5">
+              <i data-lucide="git-pull-request" class="w-3.5 h-3.5 text-cyan-400"></i>
+              <span>開機探測流程圖 (可雙擊或點擊放大)</span>
+            </span>
+            <button onclick="openDiagramModal('wf1-diagram', 'Workflow 1：開機探針與 Webview 輸入框鎖定流程')" class="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs border border-slate-700 transition cursor-pointer shadow-sm">
+              <i data-lucide="maximize-2" class="w-3.5 h-3.5 text-cyan-400"></i>
+              <span>全螢幕放大</span>
+            </button>
+          </div>
+
           <!-- Mermaid Diagram -->
-          <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 overflow-x-auto">
+          <div id="wf1-diagram" ondblclick="openDiagramModal('wf1-diagram', 'Workflow 1：開機探針與 Webview 輸入框鎖定流程')" class="bg-slate-950 p-4 rounded-xl border border-slate-800 overflow-x-auto cursor-zoom-in hover:border-cyan-500/50 transition" title="雙擊全螢幕放大檢視">
             <pre class="mermaid">
 flowchart TD
     A([啟動 Bridge 服務]) --> B[puppeteer.connect 到 127.0.0.1:9222]
@@ -260,8 +272,20 @@ flowchart TD
             這是 Bridge 最複雜的核心流程，涵蓋「雙重輸入保險注入」、「心跳防 Telegram 逾時」、「三連續確認結束防抖」以及「乾淨 Markdown 內容提取」。
           </div>
 
+          <!-- Diagram Action Bar -->
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs text-slate-400 font-medium flex items-center gap-1.5">
+              <i data-lucide="activity" class="w-3.5 h-3.5 text-emerald-400"></i>
+              <span>雙向通訊時序圖 (可雙擊或點擊放大)</span>
+            </span>
+            <button onclick="openDiagramModal('wf2-diagram', 'Workflow 2：雙向指令注入、動態心跳與收斂萃取時序圖')" class="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs border border-slate-700 transition cursor-pointer shadow-sm">
+              <i data-lucide="maximize-2" class="w-3.5 h-3.5 text-emerald-400"></i>
+              <span>全螢幕放大</span>
+            </button>
+          </div>
+
           <!-- Mermaid Sequence Diagram -->
-          <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 overflow-x-auto">
+          <div id="wf2-diagram" ondblclick="openDiagramModal('wf2-diagram', 'Workflow 2：雙向指令注入、動態心跳與收斂萃取時序圖')" class="bg-slate-950 p-4 rounded-xl border border-slate-800 overflow-x-auto cursor-zoom-in hover:border-emerald-500/50 transition" title="雙擊全螢幕放大檢視">
             <pre class="mermaid">
 sequenceDiagram
     autonumber
@@ -404,7 +428,19 @@ sequenceDiagram
       </div>
       <p class="text-xs text-slate-400">從 Telegram 訊息抵達到回覆完成的完整狀態流轉：</p>
 
-      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl overflow-x-auto">
+      <!-- Diagram Action Bar -->
+      <div class="flex items-center justify-between mb-1">
+        <span class="text-xs text-slate-400 font-medium flex items-center gap-1.5">
+          <i data-lucide="git-branch" class="w-3.5 h-3.5 text-purple-400"></i>
+          <span>狀態機演化圖 (可雙擊或點擊放大)</span>
+        </span>
+        <button onclick="openDiagramModal('state-diagram', '完整生命週期狀態機演化圖')" class="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs border border-slate-700 transition cursor-pointer shadow-sm">
+          <i data-lucide="maximize-2" class="w-3.5 h-3.5 text-purple-400"></i>
+          <span>全螢幕放大</span>
+        </button>
+      </div>
+
+      <div id="state-diagram" ondblclick="openDiagramModal('state-diagram', '完整生命週期狀態機演化圖')" class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl overflow-x-auto cursor-zoom-in hover:border-purple-500/50 transition" title="雙擊全螢幕放大檢視">
         <pre class="mermaid">
 stateDiagram-v2
     [*] --> Idle: 服務啟動並鎖定 Webview
@@ -464,6 +500,52 @@ stateDiagram-v2
     <p>© 2026 Ku Visual Hub • VS Code Antigravity Bridge Architecture Showcase</p>
   </footer>
 
+  <!-- Diagram Lightbox Modal -->
+  <div id="diagramModal" class="fixed inset-0 z-50 hidden bg-slate-950/90 backdrop-blur-md flex flex-col transition-opacity duration-200">
+    <!-- Modal Header Toolbar -->
+    <div class="flex items-center justify-between px-4 py-3 bg-slate-900/90 border-b border-slate-800 select-none">
+      <div class="flex items-center gap-2 overflow-hidden mr-2">
+        <i data-lucide="maximize-2" class="w-4 h-4 text-cyan-400 shrink-0"></i>
+        <h3 id="modalTitle" class="text-sm font-semibold text-white truncate">架構圖放大檢視</h3>
+        <span class="text-[11px] text-slate-400 hidden sm:inline-block bg-slate-800 px-2 py-0.5 rounded-full border border-slate-700">滾輪縮放 • 拖曳平移 • 雙擊重設</span>
+      </div>
+      
+      <!-- Controls -->
+      <div class="flex items-center gap-1.5 shrink-0">
+        <div class="flex items-center bg-slate-800 rounded-lg border border-slate-700 p-0.5">
+          <button id="zoomOutBtn" class="p-1.5 text-slate-300 hover:text-white hover:bg-slate-700 rounded transition" title="縮小 (滾輪向下)">
+            <i data-lucide="zoom-out" class="w-4 h-4"></i>
+          </button>
+          <span id="zoomLevelDisplay" class="text-xs font-mono font-bold text-cyan-400 px-2 min-w-[3.5rem] text-center">100%</span>
+          <button id="zoomInBtn" class="p-1.5 text-slate-300 hover:text-white hover:bg-slate-700 rounded transition" title="放大 (滾輪向上)">
+            <i data-lucide="zoom-in" class="w-4 h-4"></i>
+          </button>
+        </div>
+
+        <button id="zoomResetBtn" class="px-2.5 py-1.5 text-xs text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg transition flex items-center gap-1" title="重設縮放與位置 (雙擊畫布)">
+          <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+          <span class="hidden sm:inline">重設</span>
+        </button>
+
+        <button id="closeModalBtn" class="p-1.5 text-slate-400 hover:text-white hover:bg-rose-500/20 hover:text-rose-400 border border-transparent hover:border-rose-500/30 rounded-lg transition ml-1" title="關閉 (ESC)">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Viewport -->
+    <div id="modalViewport" class="flex-1 w-full h-full overflow-hidden relative cursor-grab active:cursor-grabbing select-none bg-slate-950/60 flex items-center justify-center">
+      <div id="modalCanvas" class="origin-center transition-transform duration-75 will-change-transform flex items-center justify-center p-8">
+        <!-- SVG will be injected here -->
+      </div>
+    </div>
+
+    <!-- Mobile Hint Footer -->
+    <div class="sm:hidden px-3 py-1.5 bg-slate-900/80 text-[10px] text-slate-400 text-center border-t border-slate-800 select-none">
+      💡 雙指捏合縮放，單指滑動平移
+    </div>
+  </div>
+
   <script>
     lucide.createIcons();
 
@@ -504,6 +586,182 @@ stateDiagram-v2
         document.documentElement.requestFullscreen().catch(() => {});
       } else {
         document.exitFullscreen().catch(() => {});
+      }
+    });
+
+    // Modal & Interactive Pan/Zoom
+    const modal = document.getElementById('diagramModal');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalViewport = document.getElementById('modalViewport');
+    const modalCanvas = document.getElementById('modalCanvas');
+    const zoomLevelDisplay = document.getElementById('zoomLevelDisplay');
+    const zoomInBtn = document.getElementById('zoomInBtn');
+    const zoomOutBtn = document.getElementById('zoomOutBtn');
+    const zoomResetBtn = document.getElementById('zoomResetBtn');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+
+    let scale = 1;
+    let translateX = 0;
+    let translateY = 0;
+    let isDragging = false;
+    let startX = 0;
+    let startY = 0;
+    let initialPinchDistance = null;
+    let initialScale = 1;
+
+    function updateTransform(animate = false) {
+      if (animate) {
+        modalCanvas.style.transition = 'transform 0.2s ease-out';
+      } else {
+        modalCanvas.style.transition = 'none';
+      }
+      modalCanvas.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
+      zoomLevelDisplay.textContent = `${Math.round(scale * 100)}%`;
+    }
+
+    function resetTransform() {
+      scale = 1;
+      translateX = 0;
+      translateY = 0;
+      updateTransform(true);
+    }
+
+    window.openDiagramModal = function(containerId, title) {
+      const container = document.getElementById(containerId);
+      if (!container) return;
+      const svg = container.querySelector('svg');
+      if (!svg) {
+        alert('圖表尚未完成渲染，請稍候重試');
+        return;
+      }
+
+      modalTitle.textContent = title || '圖表全螢幕放大檢視';
+      modalCanvas.innerHTML = '';
+      const clonedSvg = svg.cloneNode(true);
+      clonedSvg.style.maxWidth = 'none';
+      clonedSvg.style.height = 'auto';
+      clonedSvg.style.width = '100%';
+      modalCanvas.appendChild(clonedSvg);
+
+      modal.classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+      resetTransform();
+      lucide.createIcons();
+    };
+
+    window.closeDiagramModal = function() {
+      modal.classList.add('hidden');
+      document.body.style.overflow = '';
+      modalCanvas.innerHTML = '';
+    };
+
+    closeModalBtn.addEventListener('click', closeDiagramModal);
+
+    // Zoom Buttons
+    zoomInBtn.addEventListener('click', () => {
+      scale = Math.min(scale * 1.25, 6);
+      updateTransform(true);
+    });
+
+    zoomOutBtn.addEventListener('click', () => {
+      scale = Math.max(scale / 1.25, 0.3);
+      updateTransform(true);
+    });
+
+    zoomResetBtn.addEventListener('click', resetTransform);
+
+    // Mouse Wheel Zoom
+    modalViewport.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const zoomFactor = e.deltaY < 0 ? 1.15 : 0.87;
+      const newScale = Math.min(Math.max(scale * zoomFactor, 0.3), 6);
+      scale = newScale;
+      updateTransform(false);
+    }, { passive: false });
+
+    // Double Click to Reset or Zoom In
+    modalViewport.addEventListener('dblclick', (e) => {
+      if (e.target.closest('#modalCanvas')) {
+        if (scale !== 1 || translateX !== 0 || translateY !== 0) {
+          resetTransform();
+        } else {
+          scale = 1.6;
+          updateTransform(true);
+        }
+      }
+    });
+
+    // Mouse Drag Pan
+    modalViewport.addEventListener('mousedown', (e) => {
+      if (e.button !== 0) return;
+      isDragging = true;
+      startX = e.clientX - translateX;
+      startY = e.clientY - translateY;
+      modalViewport.classList.remove('cursor-grab');
+      modalViewport.classList.add('cursor-grabbing');
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      translateX = e.clientX - startX;
+      translateY = e.clientY - startY;
+      updateTransform(false);
+    });
+
+    window.addEventListener('mouseup', () => {
+      if (isDragging) {
+        isDragging = false;
+        modalViewport.classList.remove('cursor-grabbing');
+        modalViewport.classList.add('cursor-grab');
+      }
+    });
+
+    // Touch Support (Pinch-to-zoom & Pan)
+    modalViewport.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 1) {
+        isDragging = true;
+        startX = e.touches[0].clientX - translateX;
+        startY = e.touches[0].clientY - translateY;
+      } else if (e.touches.length === 2) {
+        isDragging = false;
+        initialPinchDistance = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+        initialScale = scale;
+      }
+    }, { passive: false });
+
+    modalViewport.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+      if (e.touches.length === 1 && isDragging) {
+        translateX = e.touches[0].clientX - startX;
+        translateY = e.touches[0].clientY - startY;
+        updateTransform(false);
+      } else if (e.touches.length === 2 && initialPinchDistance) {
+        const currentDistance = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+        const factor = currentDistance / initialPinchDistance;
+        scale = Math.min(Math.max(initialScale * factor, 0.3), 6);
+        updateTransform(false);
+      }
+    }, { passive: false });
+
+    modalViewport.addEventListener('touchend', (e) => {
+      if (e.touches.length < 2) {
+        initialPinchDistance = null;
+      }
+      if (e.touches.length === 0) {
+        isDragging = false;
+      }
+    });
+
+    // Keyboard ESC to Close
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
+        closeDiagramModal();
       }
     });
   </script>

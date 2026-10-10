@@ -1,0 +1,14 @@
+[
+  {
+    "id": "sample-stock-vis",
+    "title": "籌碼動能與大戶持股視覺化",
+    "category": "財務與籌碼",
+    "description": "展示大戶持股比例趨勢、外資投信買賣超動能與股價多空對比之互動式圖表儀表板。",
+    "tags": ["籌碼動能", "ECharts", "互動圖表", "大戶持股"],
+    "url": "demos/sample-stock-vis.html",
+    "date": "2026-10-11",
+    "author": "Antigravity AI",
+    "badge": "精選示範"
+  }
+]
+

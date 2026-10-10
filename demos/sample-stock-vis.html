@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>籌碼動能與大戶持股視覺化 - Ku Visual Hub</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Apache ECharts CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0f9ff',
+              500: '#0284c7',
+              600: '#0369a1',
+              900: '#0c4a6e'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+    .chart-box { height: calc(100vh - 160px); min-height: 540px; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col antialiased selection:bg-cyan-500 selection:text-white">
+
+  <!-- Header -->
+  <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur-md px-4 py-3 sticky top-0 z-20 flex flex-wrap items-center justify-between gap-3">
+    <div class="flex items-center gap-3">
+      <a href="../index.html" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-medium transition border border-slate-700">
+        <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
+        <span>返回首頁</span>
+      </a>
+      <div class="h-4 w-px bg-slate-800 hidden sm:block"></div>
+      <div class="flex items-center gap-2">
+        <span class="px-2 py-0.5 rounded text-xs font-semibold bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">2330 台積電</span>
+        <h1 class="text-sm md:text-base font-bold text-white tracking-wide">籌碼動能與大戶持股對比分析</h1>
+      </div>
+    </div>
+
+    <!-- Quick Stats Pill -->
+    <div class="flex items-center gap-4 text-xs">
+      <div class="hidden md:flex items-center gap-3 bg-slate-800/80 px-3 py-1.5 rounded-lg border border-slate-700/60">
+        <span class="text-slate-400">最新收盤: <strong class="text-emerald-400 font-mono">1,045 (+15)</strong></span>
+        <span class="text-slate-600">|</span>
+        <span class="text-slate-400">大戶持股率: <strong class="text-cyan-400 font-mono">87.42% (+0.35%)</strong></span>
+        <span class="text-slate-600">|</span>
+        <span class="text-slate-400">三大法人: <strong class="text-emerald-400 font-mono">+12,450 張</strong></span>
+      </div>
+      <button id="toggleFullscreen" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition">
+        <i data-lucide="maximize-2" class="w-4 h-4"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Chart Container -->
+  <main class="flex-1 p-3 md:p-6 max-w-7xl w-full mx-auto flex flex-col gap-4">
+    <!-- Chart Card -->
+    <div class="bg-slate-900 border border-slate-800/80 rounded-2xl p-4 shadow-2xl relative flex-1 flex flex-col">
+      <div class="flex flex-wrap items-center justify-between gap-2 mb-2 pb-2 border-b border-slate-800/60 text-xs text-slate-400">
+        <div class="flex items-center gap-2">
+          <i data-lucide="activity" class="w-4 h-4 text-cyan-400"></i>
+          <span class="font-medium text-slate-200">日 K 線走勢、均線、法人籌碼量能與千張大戶持股曲線</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="inline-flex items-center gap-1 text-[11px] text-slate-400">
+            <span class="w-2 h-2 rounded-full bg-emerald-500"></span> 漲 / 買超
+          </span>
+          <span class="inline-flex items-center gap-1 text-[11px] text-slate-400">
+            <span class="w-2 h-2 rounded-full bg-rose-500"></span> 跌 / 賣超
+          </span>
+          <span class="inline-flex items-center gap-1 text-[11px] text-slate-400">
+            <span class="w-2 h-2 rounded-full bg-cyan-400"></span> 大戶比例
+          </span>
+        </div>
+      </div>
+
+      <div id="mainChart" class="chart-box w-full flex-1"></div>
+    </div>
+  </main>
+
+  <script>
+    lucide.createIcons();
+
+    // Init ECharts instance
+    const chartDom = document.getElementById('mainChart');
+    const myChart = echarts.init(chartDom, 'dark', { renderer: 'canvas' });
+
+    // Generate mock candlestick & chip data for past 60 days
+    const dates = [];
+    const kValues = []; // [open, close, lowest, highest]
+    const volumes = [];
+    const bigHoldersPct = [];
+    const institutionalFlow = [];
+
+    let basePrice = 950;
+    let basePct = 86.2;
+    const now = new Date(2026, 9, 11);
+
+    for (let i = 60; i >= 0; i--) {
+      const d = new Date(now.getTime() - i * 24 * 3600 * 1000);
+      // Skip weekends
+      if (d.getDay() === 0 || d.getDay() === 6) continue;
+      const dateStr = `${d.getMonth() + 1}/${d.getDate()}`;
+      dates.push(dateStr);
+
+      const change = (Math.random() - 0.46) * 18;
+      const open = Math.round(basePrice + (Math.random() - 0.5) * 8);
+      const close = Math.round(open + change);
+      const high = Math.round(Math.max(open, close) + Math.random() * 8);
+      const low = Math.round(Math.min(open, close) - Math.random() * 8);
+      basePrice = close;
+      kValues.push([open, close, low, high]);
+
+      const vol = Math.round(20000 + Math.random() * 35000);
+      volumes.push(vol);
+
+      const netInst = Math.round((Math.random() - 0.45) * 12000);
+      institutionalFlow.push(netInst);
+
+      basePct += (netInst > 0 ? 0.05 : -0.04) + (Math.random() - 0.5) * 0.04;
+      bigHoldersPct.push(parseFloat(basePct.toFixed(2)));
+    }
+
+    function calculateMA(dayCount, data) {
+      const result = [];
+      for (let i = 0, len = data.length; i < len; i++) {
+        if (i < dayCount) {
+          result.push('-');
+          continue;
+        }
+        let sum = 0;
+        for (let j = 0; j < dayCount; j++) {
+          sum += data[i - j][1]; // close price
+        }
+        result.push(parseFloat((sum / dayCount).toFixed(2)));
+      }
+      return result;
+    }
+
+    const ma5 = calculateMA(5, kValues);
+    const ma20 = calculateMA(20, kValues);
+
+    const option = {
+      backgroundColor: 'transparent',
+      animation: true,
+      legend: {
+        bottom: 10,
+        left: 'center',
+        data: ['日K線', 'MA5', 'MA20', '三大法人買賣超', '千張大戶持股%'],
+        textStyle: { color: '#94a3b8' }
+      },
+      tooltip: {
+        trigger: 'axis',
+        axisPointer: { type: 'cross' },
+        backgroundColor: '#1e293b',
+        borderColor: '#334155',
+        textStyle: { color: '#f8fafc', fontSize: 12 },
+        borderWidth: 1,
+        padding: 10
+      },
+      axisPointer: {
+        link: [{ xAxisIndex: 'all' }],
+        label: { backgroundColor: '#334155' }
+      },
+      grid: [
+        { left: '4%', right: '4%', top: '5%', height: '50%' },
+        { left: '4%', right: '4%', top: '62%', height: '16%' },
+        { left: '4%', right: '4%', top: '82%', height: '12%' }
+      ],
+      xAxis: [
+        {
+          type: 'category',
+          data: dates,
+          boundaryGap: true,
+          axisLine: { lineStyle: { color: '#334155' } },
+          axisLabel: { show: false },
+          min: 'dataMin',
+          max: 'dataMax'
+        },
+        {
+          type: 'category',
+          gridIndex: 1,
+          data: dates,
+          boundaryGap: true,
+          axisLine: { lineStyle: { color: '#334155' } },
+          axisLabel: { show: false },
+          min: 'dataMin',
+          max: 'dataMax'
+        },
+        {
+          type: 'category',
+          gridIndex: 2,
+          data: dates,
+          boundaryGap: true,
+          axisLine: { lineStyle: { color: '#334155' } },
+          axisLabel: { color: '#94a3b8', fontSize: 10 },
+          min: 'dataMin',
+          max: 'dataMax'
+        }
+      ],
+      yAxis: [
+        {
+          scale: true,
+          splitLine: { lineStyle: { color: '#1e293b' } },
+          axisLabel: { color: '#94a3b8' }
+        },
+        {
+          gridIndex: 1,
+          splitNumber: 2,
+          splitLine: { lineStyle: { color: '#1e293b' } },
+          axisLabel: { color: '#94a3b8', fontSize: 10 }
+        },
+        {
+          gridIndex: 2,
+          scale: true,
+          splitNumber: 2,
+          splitLine: { lineStyle: { color: '#1e293b' } },
+          axisLabel: {
+            color: '#38bdf8',
+            fontSize: 10,
+            formatter: '{value}%'
+          }
+        }
+      ],
+      dataZoom: [
+        {
+          type: 'inside',
+          xAxisIndex: [0, 1, 2],
+          start: 35,
+          end: 100
+        },
+        {
+          show: true,
+          xAxisIndex: [0, 1, 2],
+          type: 'slider',
+          bottom: 35,
+          height: 14,
+          borderColor: '#1e293b',
+          fillerColor: 'rgba(56, 189, 248, 0.2)',
+          handleStyle: { color: '#38bdf8' },
+          textStyle: { color: '#64748b' }
+        }
+      ],
+      series: [
+        {
+          name: '日K線',
+          type: 'candlestick',
+          data: kValues,
+          itemStyle: {
+            color: '#10b981',       // Up color (red in TW, but using green/red toggle style, here green up)
+            color0: '#ef4444',      // Down color
+            borderColor: '#10b981',
+            borderColor0: '#ef4444'
+          }
+        },
+        {
+          name: 'MA5',
+          type: 'line',
+          data: ma5,
+          smooth: true,
+          showSymbol: false,
+          lineStyle: { width: 1.5, color: '#f59e0b' }
+        },
+        {
+          name: 'MA20',
+          type: 'line',
+          data: ma20,
+          smooth: true,
+          showSymbol: false,
+          lineStyle: { width: 1.5, color: '#8b5cf6' }
+        },
+        {
+          name: '三大法人買賣超',
+          type: 'bar',
+          xAxisIndex: 1,
+          yAxisIndex: 1,
+          data: institutionalFlow.map(val => ({
+            value: val,
+            itemStyle: { color: val >= 0 ? '#10b981' : '#ef4444' }
+          }))
+        },
+        {
+          name: '千張大戶持股%',
+          type: 'line',
+          xAxisIndex: 2,
+          yAxisIndex: 2,
+          data: bigHoldersPct,
+          smooth: true,
+          showSymbol: true,
+          symbolSize: 4,
+          lineStyle: { width: 2, color: '#38bdf8' },
+          areaStyle: {
+            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+              { offset: 0, color: 'rgba(56, 189, 248, 0.3)' },
+              { offset: 1, color: 'rgba(56, 189, 248, 0.0)' }
+            ])
+          }
+        }
+      ]
+    };
+
+    myChart.setOption(option);
+
+    // Responsive resize
+    window.addEventListener('resize', () => {
+      myChart.resize();
+    });
+
+    // Fullscreen toggle
+    document.getElementById('toggleFullscreen').addEventListener('click', () => {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        document.exitFullscreen().catch(() => {});
+      }
+    });
+  </script>
+</body>
+</html>
+

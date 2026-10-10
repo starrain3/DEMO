@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="zh-TW" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VS Code Antigravity Bridge 架構與 Workflow 視覺化評審</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Mermaid.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              400: '#38bdf8',
+              500: '#0ea5e9',
+              600: '#0284c7'
+            }
+          }
+        }
+      }
+    };
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'dark',
+      themeVariables: {
+        darkMode: true,
+        background: '#0f172a',
+        primaryColor: '#1e293b',
+        primaryTextColor: '#f8fafc',
+        primaryBorderColor: '#38bdf8',
+        lineColor: '#64748b',
+        secondaryColor: '#334155',
+        tertiaryColor: '#0f172a'
+      }
+    });
+  </script>
+
+  <style>
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0f172a; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #475569; }
+    .glass-card {
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+    .mermaid {
+      display: flex;
+      justify-content: center;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col antialiased selection:bg-cyan-500 selection:text-white">
+
+  <!-- Header -->
+  <header class="sticky top-0 z-30 border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-md px-4 lg:px-8 py-3.5 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <a href="../index.html" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white text-xs font-medium transition border border-slate-800">
+        <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
+        <span>返回展示首頁</span>
+      </a>
+      <div class="h-4 w-px bg-slate-800 hidden sm:block"></div>
+      <div class="flex items-center gap-2">
+        <span class="px-2 py-0.5 rounded text-[11px] font-bold bg-indigo-500/10 text-indigo-400 border border-indigo-500/30">
+          Architecture Review
+        </span>
+        <h1 class="text-sm md:text-base font-extrabold text-white tracking-wide">
+          VS Code Antigravity Bridge 核心架構與 Workflow 全景評審
+        </h1>
+      </div>
+    </div>
+
+    <!-- Quick Status -->
+    <div class="flex items-center gap-2">
+      <span class="hidden md:inline-flex items-center gap-1.5 text-xs text-slate-400 bg-slate-900 px-3 py-1 rounded-lg border border-slate-800">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        CDP Port: 9222
+      </span>
+      <button id="toggleFullscreen" class="p-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white transition">
+        <i data-lucide="maximize-2" class="w-4 h-4"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Body -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 lg:px-8 py-8 space-y-10">
+
+    <!-- Hero / Architecture Overview -->
+    <section class="space-y-4">
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 text-xs font-semibold">
+        <i data-lucide="cpu" class="w-3.5 h-3.5"></i>
+        <span>雙向通訊橋接引擎 • 本地專屬工具</span>
+      </div>
+      <h2 class="text-2xl sm:text-3xl font-black text-white tracking-tight">
+        系統拓撲與端到端通訊架構
+      </h2>
+      <p class="text-sm text-slate-400 max-w-3xl leading-relaxed">
+        本工具解決使用者「離開電腦時仍需監控與操作 VS Code 內 Antigravity AI」的痛點。藉由 Telegraf 建立 Telegram 機器人服務，透過 Chrome DevTools Protocol (CDP) 穿透並操縱 VS Code 的 Webview DOM，實現指令雙向投遞、實時打字心跳、自動狀態收斂與安全回傳。
+      </p>
+
+      <!-- Topology Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 pt-3">
+        <!-- Node 1 -->
+        <div class="p-4 rounded-xl bg-slate-900/90 border border-slate-800 flex flex-col justify-between space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Client Layer</span>
+            <div class="p-2 rounded-lg bg-blue-500/10 text-blue-400"><i data-lucide="smartphone" class="w-4 h-4"></i></div>
+          </div>
+          <div>
+            <h3 class="font-bold text-white text-sm">Telegram App</h3>
+            <p class="text-xs text-slate-400 mt-1">使用者隨身端。發送對話、控制指令（/stop, /new, /status）並接收分段回覆與進度心跳。</p>
+          </div>
+          <div class="text-[11px] text-blue-400/80 font-mono">Allowed User ID 白名單防護</div>
+        </div>
+
+        <!-- Node 2 -->
+        <div class="p-4 rounded-xl bg-slate-900/90 border border-slate-800 flex flex-col justify-between space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Bridge Engine</span>
+            <div class="p-2 rounded-lg bg-cyan-500/10 text-cyan-400"><i data-lucide="server" class="w-4 h-4"></i></div>
+          </div>
+          <div>
+            <h3 class="font-bold text-white text-sm">Telegraf Node.js 服務</h3>
+            <p class="text-xs text-slate-400 mt-1">非同步派發機制（消滅 90s 超時）、定時打字心跳發送器、3500 字長訊息智慧分段器。</p>
+          </div>
+          <div class="text-[11px] text-cyan-400/80 font-mono">bridge.js + .env (本地封閉)</div>
+        </div>
+
+        <!-- Node 3 -->
+        <div class="p-4 rounded-xl bg-slate-900/90 border border-slate-800 flex flex-col justify-between space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Protocol Layer</span>
+            <div class="p-2 rounded-lg bg-purple-500/10 text-purple-400"><i data-lucide="cable" class="w-4 h-4"></i></div>
+          </div>
+          <div>
+            <h3 class="font-bold text-white text-sm">CDP 連線管道</h3>
+            <p class="text-xs text-slate-400 mt-1">Puppeteer 透過 `http://127.0.0.1:9222` 連線 VS Code，建立目標 Target 獨立 CDPSession。</p>
+          </div>
+          <div class="text-[11px] text-purple-400/80 font-mono">Runtime.evaluate + DOM Events</div>
+        </div>
+
+        <!-- Node 4 -->
+        <div class="p-4 rounded-xl bg-slate-900/90 border border-slate-800 flex flex-col justify-between space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Target Layer</span>
+            <div class="p-2 rounded-lg bg-emerald-500/10 text-emerald-400"><i data-lucide="sparkles" class="w-4 h-4"></i></div>
+          </div>
+          <div>
+            <h3 class="font-bold text-white text-sm">Antigravity Webview</h3>
+            <p class="text-xs text-slate-400 mt-1">雙保險文字注入、按鈕狀態嗅探（Cancel/Stop 與 Send）、多層 Markdown 清理萃取。</p>
+          </div>
+          <div class="text-[11px] text-emerald-400/80 font-mono">VS Code Extension Webview</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Workflows Section -->
+    <section class="space-y-6">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+        <div>
+          <h2 class="text-xl sm:text-2xl font-black text-white">
+            三大核心 Workflows 深入解析
+          </h2>
+          <p class="text-xs text-slate-400 mt-1">點擊切換查看不同流程的時序圖、邏輯防呆與關鍵實作細節。</p>
+        </div>
+
+        <!-- Workflow Tabs -->
+        <div class="flex items-center gap-1.5 bg-slate-900 p-1 rounded-xl border border-slate-800 text-xs">
+          <button data-wf="1" class="wf-btn active px-3 py-1.5 rounded-lg font-bold transition bg-cyan-500 text-white shadow-sm shadow-cyan-500/20">
+            1. 啟動與探測流程
+          </button>
+          <button data-wf="2" class="wf-btn px-3 py-1.5 rounded-lg font-bold transition text-slate-400 hover:text-white">
+            2. 雙向指令與心跳
+          </button>
+          <button data-wf="3" class="wf-btn px-3 py-1.5 rounded-lg font-bold transition text-slate-400 hover:text-white">
+            3. 遠端控制指令
+          </button>
+        </div>
+      </div>
+
+      <!-- Workflow 1 Content -->
+      <div id="wfContent1" class="wf-pane space-y-6">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+          <div class="flex items-center gap-2 mb-4">
+            <span class="w-2.5 h-2.5 rounded-full bg-cyan-400"></span>
+            <h3 class="text-base font-bold text-white">Workflow 1：開機探針與 Webview 輸入框鎖定流程</h3>
+          </div>
+          <div class="text-xs text-slate-400 mb-6 leading-relaxed">
+            VS Code 內部可能同時存在數十個 Webview Target（如延伸模組面板、設定檔、終端機等）。Bridge 不採用易失效的靜態 URL，而是實作「**DOM 語義特徵探針**」，主動探索每個候選 Target 是否存在 <code>[aria-label="Message input"]</code>。
+          </div>
+
+          <!-- Mermaid Diagram -->
+          <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 overflow-x-auto">
+            <pre class="mermaid">
+flowchart TD
+    A([啟動 Bridge 服務]) --> B[puppeteer.connect 到 127.0.0.1:9222]
+    B --> C[獲取所有 Targets 清單]
+    C --> D[篩選 127.0.0.1 / vscode-webview 候選目標]
+    D --> E{遍歷候選 Target<br>建立暫時 CDPSession}
+    E --> F[Runtime.evaluate 檢查<br>[aria-label='Message input']]
+    F -->|未找到| G[關閉暫時 Session，檢查下一個]
+    G --> E
+    F -->|命中輸入框| H[🎉 鎖定有效 Antigravity Target]
+    H --> I[透過 Telegram 推播<br>🟢 VS Code Antigravity 已連線就緒！]
+    I --> J([進入常駐監聽狀態])
+            </pre>
+          </div>
+        </div>
+
+        <!-- Technical Deep Dive Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="p-4 rounded-xl bg-slate-900/60 border border-slate-800">
+            <h4 class="text-xs font-bold text-cyan-400 flex items-center gap-1.5 mb-2">
+              <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+              輪詢重試防護
+            </h4>
+            <p class="text-xs text-slate-400 leading-relaxed">
+              開機時自動進行 20 次探測（每次間隔 1.5s），即使使用者在開機時側邊欄尚未展開，只要使用者隨後點開側邊欄即可自動連線並發送就緒通知。
+            </p>
+          </div>
+          <div class="p-4 rounded-xl bg-slate-900/60 border border-slate-800">
+            <h4 class="text-xs font-bold text-cyan-400 flex items-center gap-1.5 mb-2">
+              <i data-lucide="shield-check" class="w-3.5 h-3.5"></i>
+              資源安全釋放
+            </h4>
+            <p class="text-xs text-slate-400 leading-relaxed">
+              探測無效 Target 時強制在 finally 區塊執行 <code>client.detach()</code>，絕不殘留無用 CDP 連線，防止 VS Code 記憶體洩漏。
+            </p>
+          </div>
+          <div class="p-4 rounded-xl bg-slate-900/60 border border-slate-800">
+            <h4 class="text-xs font-bold text-cyan-400 flex items-center gap-1.5 mb-2">
+              <i data-lucide="bell" class="w-3.5 h-3.5"></i>
+              專案綁定確認
+            </h4>
+            <p class="text-xs text-slate-400 leading-relaxed">
+              開機推播明確告知當前綁定的專案名稱（例如 <code>TARGET_PROJECT_NAME=ku_tools</code>），確保使用者在 Telegram 上操作不會誤指派至其他視窗。
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Workflow 2 Content -->
+      <div id="wfContent2" class="wf-pane hidden space-y-6">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+          <div class="flex items-center gap-2 mb-4">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+            <h3 class="text-base font-bold text-white">Workflow 2：雙向指令注入、動態心跳與收斂萃取流程</h3>
+          </div>
+          <div class="text-xs text-slate-400 mb-6 leading-relaxed">
+            這是 Bridge 最複雜的核心流程，涵蓋「雙重輸入保險注入」、「心跳防 Telegram 逾時」、「三連續確認結束防抖」以及「乾淨 Markdown 內容提取」。
+          </div>
+
+          <!-- Mermaid Sequence Diagram -->
+          <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 overflow-x-auto">
+            <pre class="mermaid">
+sequenceDiagram
+    autonumber
+    actor User as Telegram 使用者
+    participant TG as Telegraf (Bridge)
+    participant CDP as CDP Session
+    participant DOM as Antigravity Webview
+
+    User->>TG: 發送文字指令
+    TG->>User: 回覆「🛰️ 正在投遞指令...」
+    TG->>TG: 啟動非同步心跳 (4s typing, 12s 耗時提示)
+    
+    TG->>CDP: 注入文字 (第 1 保險: execCommand insertText)
+    Note over CDP,DOM: 若無效自動降級為第 2 保險 (Clipboard paste)
+    CDP->>DOM: 點擊 Send message 或觸發 Enter
+    
+    loop 監聽執行狀態 (每 1.2s 探測)
+        CDP->>DOM: 檢查是否有 Cancel / Stop 按鈕
+        DOM-->>CDP: isWorking = true (執行中)
+        TG->>User: 定時更新耗時（例如：已耗時 24 秒...）
+    end
+
+    Note over DOM: Cancel 消失 + Send 按鈕回歸 + Agent 回覆出現
+    loop 防抖穩定檢查 (連續 3 次確認)
+        CDP->>DOM: 檢查 DOM 節點文字長度穩定性
+    end
+
+    TG->>DOM: 萃取 Agent response (過濾 tool 折疊與耗時標籤)
+    TG->>TG: 清除心跳計時器
+    TG->>User: 安全分段發送結果 (每段 <= 3500 字，Markdown 降級防呆)
+            </pre>
+          </div>
+        </div>
+
+        <!-- 4 Pillars of Stability -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="p-5 rounded-xl bg-slate-900/60 border border-slate-800 space-y-2">
+            <div class="flex items-center gap-2 text-cyan-400 text-xs font-bold">
+              <i data-lucide="key" class="w-4 h-4"></i>
+              <span>雙重輸入保險機制 (Dual Injection Insurance)</span>
+            </div>
+            <p class="text-xs text-slate-400 leading-relaxed">
+              VS Code Webview 採用 Draft/Lexical 類型之富文本輸入框。第一道使用 <code>execCommand('selectAll') + execCommand('insertText')</code>，若偵測到文字為空，立即無縫啟動第二道 <code>ClipboardEvent('paste')</code>，並派發 <code>input</code> 與 <code>change</code> 事件，確保 100% 成功填入。
+            </p>
+          </div>
+
+          <div class="p-5 rounded-xl bg-slate-900/60 border border-slate-800 space-y-2">
+            <div class="flex items-center gap-2 text-emerald-400 text-xs font-bold">
+              <i data-lucide="heart-pulse" class="w-4 h-4"></i>
+              <span>動態耗時心跳 (Anti-Timeout Heartbeat)</span>
+            </div>
+            <p class="text-xs text-slate-400 leading-relaxed">
+              Telegram 輪詢若未在 90 秒內回應用戶將發生連線超時中斷。Bridge 採用非同步事件隔離，主線程每 4 秒向 Telegram 伺服器發送 <code>typing</code> 動作，每 12 秒動態更新訊息上的已執行秒數，讓使用者在手機端清楚知曉 AI 仍在即時思考。
+            </p>
+          </div>
+
+          <div class="p-5 rounded-xl bg-slate-900/60 border border-slate-800 space-y-2">
+            <div class="flex items-center gap-2 text-amber-400 text-xs font-bold">
+              <i data-lucide="check-check" class="w-4 h-4"></i>
+              <span>結束判定三重防抖 (Debounced Completion)</span>
+            </div>
+            <p class="text-xs text-slate-400 leading-relaxed">
+              Agent 呼叫工具或思考切換時，Cancel 按鈕可能產生微秒級閃爍。Bridge 規定：只有在「Cancel 按鈕徹底消失」且「Send message 按鈕回歸」且「最新輪次 Markdown 渲染穩定」連續 3 次檢查都通過（約 3.6 秒防抖），才判定為正式完成。
+            </p>
+          </div>
+
+          <div class="p-5 rounded-xl bg-slate-900/60 border border-slate-800 space-y-2">
+            <div class="flex items-center gap-2 text-purple-400 text-xs font-bold">
+              <i data-lucide="filter" class="w-4 h-4"></i>
+              <span>純淨回覆萃取與安全切片 (Clean Parser & Chunking)</span>
+            </div>
+            <p class="text-xs text-slate-400 leading-relaxed">
+              回覆萃取時會自動複製節點並刪除包含 <code>worked-for</code>、<code>thought</code>、讚/倒讚與工具按鈕的 DOM 節點，精準提取純內文。發送時若超過 3500 字則自動分片傳送，且若 Markdown 解析出錯時自動降級為純文字，絕不噴錯中斷。
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Workflow 3 Content -->
+      <div id="wfContent3" class="wf-pane hidden space-y-6">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+          <div class="flex items-center gap-2 mb-4">
+            <span class="w-2.5 h-2.5 rounded-full bg-purple-400"></span>
+            <h3 class="text-base font-bold text-white">Workflow 3：遠端控制指令系統 (/stop, /new, /status)</h3>
+          </div>
+          <div class="text-xs text-slate-400 mb-6 leading-relaxed">
+            除了傳送常規對話提示外，Bridge 亦支援直接透過 Telegram 遙控本機 Antigravity 的控制台按鈕。
+          </div>
+
+          <!-- Command Table -->
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr class="border-b border-slate-800 text-slate-400">
+                  <th class="py-3 px-4 font-semibold">指令別名 (Aliases)</th>
+                  <th class="py-3 px-4 font-semibold">底層 DOM / CDP 觸發行為</th>
+                  <th class="py-3 px-4 font-semibold">防呆與反饋設計</th>
+                  <th class="py-3 px-4 font-semibold">適用情境</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-800/60 font-mono">
+                <tr class="hover:bg-slate-800/30 transition">
+                  <td class="py-3.5 px-4 font-bold text-rose-400">/stop<br><span class="text-slate-500 font-normal">/cancel, 暫停, 停止</span></td>
+                  <td class="py-3.5 px-4 text-slate-300">搜尋 <code>button[aria-label*="Cancel"], button[title*="Stop"]</code> 並執行 <code>click()</code></td>
+                  <td class="py-3.5 px-4 text-slate-400">若目前無任務執行中，自動提示「💤 閒置待命中無須暫停」</td>
+                  <td class="py-3.5 px-4 text-slate-400 font-sans">AI 陷入不符合預期的迴圈或耗時過長時緊急終止。</td>
+                </tr>
+                <tr class="hover:bg-slate-800/30 transition">
+                  <td class="py-3.5 px-4 font-bold text-cyan-400">/new<br><span class="text-slate-500 font-normal">/reset, 新對話, 開新對話</span></td>
+                  <td class="py-3.5 px-4 text-slate-300">優先點擊 <code>[data-testid*="new-conversation"]</code>，次要搜尋專案內 New Conversation 按鈕</td>
+                  <td class="py-3.5 px-4 text-slate-400">自動回報成功點擊或提示未找到按鈕（如側邊欄收合時）</td>
+                  <td class="py-3.5 px-4 text-slate-400 font-sans">舊對話 Token 累積過長，需要開啟乾淨 Session 時。</td>
+                </tr>
+                <tr class="hover:bg-slate-800/30 transition">
+                  <td class="py-3.5 px-4 font-bold text-emerald-400">/status<br><span class="text-slate-500 font-normal">status, /狀態</span></td>
+                  <td class="py-3.5 px-4 text-slate-300">探測連線與是否存在 Cancel/Stop 按鈕</td>
+                  <td class="py-3.5 px-4 text-slate-400">即時回報：<code>🟢 本機連線正常！📌 狀態：⚡ 正在執行任務中 / 💤 閒置待命中</code></td>
+                  <td class="py-3.5 px-4 text-slate-400 font-sans">確認連線健康度或目前是否有背景任務正在跑。</td>
+                </tr>
+                <tr class="hover:bg-slate-800/30 transition">
+                  <td class="py-3.5 px-4 font-bold text-indigo-400">/help<br><span class="text-slate-500 font-normal">/start, help</span></td>
+                  <td class="py-3.5 px-4 text-slate-300">Telegraf 內建指令字典回傳</td>
+                  <td class="py-3.5 px-4 text-slate-400">回傳完整 Markdown 格式之操作指南與支援語法</td>
+                  <td class="py-3.5 px-4 text-slate-400 font-sans">初次使用或查詢指令語法。</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- State Machine & Lifecycle -->
+    <section class="space-y-4">
+      <div class="flex items-center gap-2">
+        <i data-lucide="git-branch" class="w-5 h-5 text-cyan-400"></i>
+        <h2 class="text-xl sm:text-2xl font-black text-white">
+          完整生命週期狀態機 (State Machine)
+        </h2>
+      </div>
+      <p class="text-xs text-slate-400">從 Telegram 訊息抵達到回覆完成的完整狀態流轉：</p>
+
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl overflow-x-auto">
+        <pre class="mermaid">
+stateDiagram-v2
+    [*] --> Idle: 服務啟動並鎖定 Webview
+    Idle --> Verifying: 收到 Telegram 訊息
+    Verifying --> Rejected: 非 ALLOWED_USER_ID
+    Rejected --> [*]
+    Verifying --> CommandRouting: 通過白名單
+    CommandRouting --> HandlingControlCommand: 命中 /stop, /new, /status
+    HandlingControlCommand --> Idle: 控制按鈕點擊完畢
+    CommandRouting --> Injecting: 一般文字提示
+    Injecting --> Generating: 雙保險文字注入 + 點擊 Send
+    state Generating {
+        [*] --> HeartbeatLoop: 啟動定時心跳 (每 4s typing)
+        HeartbeatLoop --> CheckStopButton: 檢查 Cancel/Stop 按鈕
+        CheckStopButton --> HeartbeatLoop: 按鈕仍存在 (持續執行)
+    }
+    Generating --> DebounceChecking: Cancel 消失 + Send 按鈕回歸
+    DebounceChecking --> Extracting: 連續 3 次狀態與內文穩定
+    Extracting --> SafePushing: 清理 HTML 標籤 + 萃取 Markdown
+    SafePushing --> Idle: 分段發送完成 (<=3500 字/段)
+        </pre>
+      </div>
+    </section>
+
+    <!-- Architecture Review Conclusions -->
+    <section class="p-6 rounded-2xl bg-gradient-to-br from-slate-900 via-slate-900 to-indigo-950/30 border border-slate-800/80 space-y-4">
+      <div class="flex items-center gap-2 text-cyan-400 font-bold text-sm">
+        <i data-lucide="clipboard-check" class="w-4 h-4"></i>
+        <span>架構評審綜合結論 (Review Summary)</span>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+        <div class="space-y-1">
+          <strong class="text-white block font-semibold">1. 高韌性與防抖設計</strong>
+          <p class="text-slate-400 leading-relaxed">
+            雙保險輸入注入與連續三次狀態防抖確認，徹底克服富文本輸入框易卡死、以及 AI 工具呼叫瞬間按鈕閃爍導致的誤判提早結尾問題。
+          </p>
+        </div>
+        <div class="space-y-1">
+          <strong class="text-white block font-semibold">2. 零逾時的使用者體驗</strong>
+          <p class="text-slate-400 leading-relaxed">
+            透過 Telegram 原生 typing 動作與定時秒數編輯心跳，既避免觸發 Telegram 90 秒輪詢超時，又讓手機端即時感知電腦端工作狀態。
+          </p>
+        </div>
+        <div class="space-y-1">
+          <strong class="text-white block font-semibold">3. 嚴謹的本地安全邊界</strong>
+          <p class="text-slate-400 leading-relaxed">
+            嚴格鎖定白名單 User ID，且專案規範嚴禁 Push 至 GitHub，敏感 Token 永不洩漏，保障本機環境極高資安防護水準。
+          </p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-slate-900 bg-slate-950 px-4 lg:px-8 py-6 text-center text-xs text-slate-500">
+    <p>© 2026 Ku Visual Hub • VS Code Antigravity Bridge Architecture Showcase</p>
+  </footer>
+
+  <script>
+    lucide.createIcons();
+
+    // Workflow Tabs Switching
+    const tabs = document.querySelectorAll('.wf-btn');
+    const panes = {
+      1: document.getElementById('wfContent1'),
+      2: document.getElementById('wfContent2'),
+      3: document.getElementById('wfContent3')
+    };
+
+    tabs.forEach((tab) => {
+      tab.addEventListener('click', () => {
+        const wfId = tab.getAttribute('data-wf');
+
+        // Toggle Buttons
+        tabs.forEach((t) => {
+          t.classList.remove('active', 'bg-cyan-500', 'text-white', 'shadow-sm', 'shadow-cyan-500/20');
+          t.classList.add('text-slate-400');
+        });
+        tab.classList.add('active', 'bg-cyan-500', 'text-white', 'shadow-sm', 'shadow-cyan-500/20');
+        tab.classList.remove('text-slate-400');
+
+        // Toggle Panes
+        Object.keys(panes).forEach((key) => {
+          if (key === wfId) {
+            panes[key].classList.remove('hidden');
+          } else {
+            panes[key].classList.add('hidden');
+          }
+        });
+      });
+    });
+
+    // Fullscreen Toggle
+    document.getElementById('toggleFullscreen').addEventListener('click', () => {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        document.exitFullscreen().catch(() => {});
+      }
+    });
+  </script>
+</body>
+</html>
+

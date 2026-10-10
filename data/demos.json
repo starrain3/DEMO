@@ -1,5 +1,16 @@
 [
   {
+    "id": "bridge-architecture-vis",
+    "title": "VS Code Antigravity Bridge 架構與 Workflow 全景評審",
+    "category": "技術原型",
+    "description": "全方位視覺化評審 Bridge 的系統拓撲、三大核心 Workflow (探測/雙向通訊心跳/遠端指令)、狀態機演化與高韌性防呆機制。",
+    "tags": ["架構評審", "CDP", "Telegram Bot", "Workflow", "狀態機", "Mermaid"],
+    "url": "demos/bridge-architecture-vis.html",
+    "date": "2026-10-11",
+    "author": "Antigravity AI",
+    "badge": "最新評審"
+  },
+  {
     "id": "sample-stock-vis",
     "title": "籌碼動能與大戶持股視覺化",
     "category": "財務與籌碼",
@@ -11,4 +22,3 @@
     "badge": "精選示範"
   }
 ]
-

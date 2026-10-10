@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ku-visual-hub-v1.0.1';
+const CACHE_NAME = 'ku-visual-hub-v1.0.2';
 
 const ASSETS_TO_CACHE = [
   './',
@@ -8,7 +8,8 @@ const ASSETS_TO_CACHE = [
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/icon.svg',
-  './demos/sample-stock-vis.html'
+  './demos/sample-stock-vis.html',
+  './demos/bridge-architecture-vis.html'
 ];
 
 // Install: Cache critical core shell assets

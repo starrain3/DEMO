@@ -124,7 +124,7 @@
         </div>
         <div id="versionCard" class="px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl bg-slate-900/80 border border-slate-800/80 hover:border-cyan-500/50 text-center flex-1 sm:flex-initial min-w-[85px] sm:min-w-[100px] cursor-pointer transition group" title="點擊檢查最新版本">
           <div class="text-lg sm:text-xl font-bold text-indigo-400 group-hover:text-cyan-400 font-mono transition flex items-center justify-center gap-1">
-            <span>1.0.4</span>
+            <span>1.0.5</span>
             <i data-lucide="refresh-cw" class="w-3 h-3 opacity-0 group-hover:opacity-100 transition hidden sm:inline-block"></i>
           </div>
           <div class="text-[10px] sm:text-[11px] text-slate-500 group-hover:text-slate-300 mt-0.5 transition">版本 (點擊檢查)</div>
@@ -274,10 +274,10 @@
       clearTimeout(toastDismissTimer);
       const toast = document.getElementById('appToast');
       if (toast) {
-        toast.classList.add('translate-y-32', 'opacity-0', 'pointer-events-none');
-        toast.classList.remove('translate-y-0', 'opacity-100');
+        toast.className = 'fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:bottom-6 sm:max-w-md z-50 p-4 rounded-2xl bg-slate-900/95 border border-cyan-500/50 shadow-2xl backdrop-blur-xl transform transition-all duration-300 translate-y-32 opacity-0 pointer-events-none flex flex-col sm:flex-row sm:items-center justify-between gap-3.5';
       }
     }
+    window.hideAppToast = hideAppToast;
 
     function showUpdateToast(worker) {
       newWorkerWaiting = worker;
@@ -292,13 +292,35 @@
       });
     }
 
-    function applyUpdateAction() {
-      if (newWorkerWaiting) {
-        newWorkerWaiting.postMessage({ type: 'SKIP_WAITING' });
-      } else if (swRegistration && swRegistration.waiting) {
-        swRegistration.waiting.postMessage({ type: 'SKIP_WAITING' });
+    async function applyUpdateAction() {
+      const actionBtn = document.getElementById('toastActionBtn');
+      if (actionBtn) {
+        actionBtn.disabled = true;
+        actionBtn.classList.add('opacity-75', 'cursor-wait');
+        actionBtn.innerHTML = '<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i><span>正在更新...</span>';
+        if (window.lucide) lucide.createIcons();
       }
-      hideAppToast();
+
+      // 1. Dispatch SKIP_WAITING to all possible worker targets
+      const targets = [
+        newWorkerWaiting,
+        swRegistration?.waiting,
+        swRegistration?.installing,
+        navigator.serviceWorker?.controller
+      ].filter(Boolean);
+
+      targets.forEach((worker) => {
+        try {
+          worker.postMessage({ type: 'SKIP_WAITING' });
+        } catch (e) {
+          console.warn('Failed to postMessage to worker:', e);
+        }
+      });
+
+      // 2. Guaranteed reload fallback: Reload after 350ms even if controllerchange is swallowed
+      setTimeout(() => {
+        window.location.reload();
+      }, 350);
     }
 
     // Auto-Reload when new SW takes control
@@ -621,6 +643,13 @@
     document.getElementById('manualCheckUpdateBtn')?.addEventListener('click', handleManualCheck);
     document.getElementById('versionCard')?.addEventListener('click', handleManualCheck);
 
+    // Connect dismiss toast button
+    document.getElementById('toastDismissBtn')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      hideAppToast();
+    });
+
     // Initial Load
     loadDemos();
     lucide.createIcons();
@@ -641,12 +670,12 @@
       </div>
     </div>
     <div class="flex items-center gap-2 shrink-0 justify-end pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-800/80">
-      <button id="toastActionBtn" class="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-white text-xs font-bold shadow-md shadow-cyan-500/25 transition active:scale-95">
+      <button id="toastActionBtn" type="button" class="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-white text-xs font-bold shadow-md shadow-cyan-500/25 transition active:scale-95 cursor-pointer">
         <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
         <span>立即更新</span>
       </button>
-      <button id="toastDismissBtn" onclick="hideAppToast()" class="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition" title="關閉">
-        <i data-lucide="x" class="w-4 h-4"></i>
+      <button id="toastDismissBtn" type="button" class="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer" title="關閉" aria-label="關閉提示">
+        <i data-lucide="x" class="w-4 h-4 pointer-events-none"></i>
       </button>
     </div>
   </div>

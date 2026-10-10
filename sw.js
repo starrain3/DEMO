@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ku-visual-hub-v1.0.0';
+const CACHE_NAME = 'ku-visual-hub-v1.0.1';
 
 const ASSETS_TO_CACHE = [
   './',
@@ -16,8 +16,15 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(ASSETS_TO_CACHE);
-    }).then(() => self.skipWaiting())
+    })
   );
+});
+
+// Message: Allow clients to command new SW to take control
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 // Activate: Clean up old cache versions

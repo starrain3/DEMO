@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ku-visual-hub-v1.1.0-mv39qrmm';
+const CACHE_NAME = 'ku-visual-hub-v1.1.0-mv39vfhm';
 
 const ASSETS_TO_CACHE = [
   './',
@@ -14,8 +14,9 @@ const ASSETS_TO_CACHE = [
   './demos/mortons-taipei-guide.html'
 ];
 
-// Install: Cache critical core shell assets
+// Install: Cache critical core shell assets & Skip Waiting Immediately
 self.addEventListener('install', (event) => {
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(ASSETS_TO_CACHE);
@@ -54,10 +55,10 @@ self.addEventListener('fetch', (event) => {
   // Ignore non-GET requests
   if (request.method !== 'GET') return;
 
-  // For data/demos.json: Network-first to always get latest registry
-  if (url.pathname.endsWith('/demos.json') || url.pathname.includes('/data/')) {
+  // For data/demos.json: Network-first to always get latest registry (bypass browser HTTP disk cache)
+  if (url.pathname.includes('/demos.json') || url.pathname.includes('/data/')) {
     event.respondWith(
-      fetch(request)
+      fetch(request, { cache: 'no-store' })
         .then((response) => {
           if (response && response.status === 200) {
             const clone = response.clone();

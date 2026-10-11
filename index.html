@@ -595,10 +595,10 @@
       setTimeout(() => document.getElementById('hubPwdInput')?.focus(), 100);
     }
 
-    // Fetch Demos (支援未加密及 AES-256 加密格式)
+    // Fetch Demos (支援未加密及 AES-256 加密格式，強制避免瀏覽器 HTTP 磁碟快取)
     async function loadDemos() {
       try {
-        const res = await fetch('./data/demos.json');
+        const res = await fetch('./data/demos.json?_t=' + Date.now(), { cache: 'no-store' });
         if (!res.ok) throw new Error('Failed to load demos.json');
         const data = await res.json();
 

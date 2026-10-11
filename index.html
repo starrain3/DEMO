@@ -638,6 +638,9 @@
 
     // Render Demos
     function renderDemos() {
+      const statTotalEl = document.getElementById('statTotalDemos');
+      if (statTotalEl) statTotalEl.textContent = allDemos.length;
+
       const container = document.getElementById('demosGrid');
       const filtered = allDemos.filter((demo) => {
         const matchesCategory = (currentCategory === 'ALL' || demo.category === currentCategory);

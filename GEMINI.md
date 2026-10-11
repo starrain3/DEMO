@@ -144,6 +144,10 @@ node scripts/verify-integrity.js ; git status
 
 ## 📜 歷史版本變更紀錄 (Changelog)
 
+### v1.2.1 (2026-10-11)
+- **Bug 修復**：修復展示卡片標題包含英文單引號（如 `Morton's`）導致 HTML `onclick` 字串逃逸產生 `Unexpected identifier 's'` 語法錯誤的嚴重問題。
+- **架構重構**：將預覽互動改為以唯一代碼驅動的 `openViewerById(demo.id)`，徹底杜絕任何特殊字元或標點符號跳脫異常。
+
 ### v1.2.0 (2026-10-11)
 - **新展示項目**：新增「Morton's The Steakhouse 台北店網路口碑全攻略與老饕點餐指南」(`demos/mortons-taipei-guide.html`)。
 - **分類擴充**：首頁新增「美食與生活風格」分類過濾標籤。

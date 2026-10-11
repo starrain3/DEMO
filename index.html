@@ -707,7 +707,7 @@
             <div class="pt-5 mt-4 border-t border-slate-800/60 flex items-center justify-between gap-2">
               <span class="text-[11px] text-slate-500 font-mono">${demo.date || ''}</span>
               <div class="flex items-center gap-2">
-                <button onclick="openViewer('${demo.url}', '${encodeURIComponent(demo.title)}')" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 text-xs font-semibold border border-cyan-500/30 transition">
+                <button onclick="openViewerById('${demo.id}')" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 text-xs font-semibold border border-cyan-500/30 transition">
                   <i data-lucide="play" class="w-3.5 h-3.5"></i>
                   <span>預覽</span>
                 </button>
@@ -724,13 +724,19 @@
     }
 
     // Modal Viewer
+    function openViewerById(id) {
+      const demo = allDemos.find(d => d.id === id);
+      if (!demo) return;
+      openViewer(demo.url, demo.title);
+    }
+
     function openViewer(url, title) {
       const modal = document.getElementById('viewerModal');
       const iframe = document.getElementById('viewerFrame');
       const modalTitle = document.getElementById('modalTitle');
       const newTabBtn = document.getElementById('modalNewTabBtn');
 
-      modalTitle.innerText = decodeURIComponent(title);
+      modalTitle.innerText = title;
       iframe.src = url;
       newTabBtn.href = url;
       modal.classList.remove('hidden');

@@ -161,10 +161,15 @@
             </div>
           </div>
 
-          <label class="flex items-center gap-2 text-xs text-slate-400 cursor-pointer">
-            <input type="checkbox" id="hubRememberMe" class="accent-cyan-500 rounded" checked>
-            <span>在此裝置記住解鎖狀態</span>
+          <label class="flex items-center gap-2 text-xs text-slate-300 cursor-pointer select-none">
+            <input type="checkbox" id="hubRememberDevice" class="accent-cyan-500 rounded" checked>
+            <span>在此裝置永久保持解鎖（免重複輸入密碼）</span>
           </label>
+
+          <div class="text-[10px] text-slate-500 flex items-center gap-1.5 leading-relaxed">
+            <i data-lucide="shield-check" class="w-3.5 h-3.5 text-cyan-400 shrink-0"></i>
+            <span>安全保護：採用 IndexedDB 不可匯出密鑰隔離，密碼本體絕不寫入純文字儲存區</span>
+          </div>
 
           <button type="submit" id="hubUnlockBtn" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white text-xs font-bold shadow-lg shadow-cyan-500/20 transition active:scale-95">
             解鎖展示中心
@@ -238,7 +243,7 @@
     </div>
     <!-- Modal Body (Iframe) -->
     <div class="flex-1 w-full bg-slate-950 relative">
-      <iframe id="viewerFrame" src="" class="w-full h-full border-none"></iframe>
+      <iframe id="viewerFrame" sandbox="allow-scripts allow-forms allow-downloads allow-modals" class="w-full h-full border-none"></iframe>
     </div>
   </div>
 
@@ -254,6 +259,15 @@
     let currentCategory = 'ALL';
     let searchQuery = '';
     let deferredPrompt = null;
+    let sessionMasterPassword = ''; // 僅於記憶體暫存，嚴禁存入 Storage
+
+    // 主動清除舊版本殘留的本機儲存憑證
+    (function cleanupLegacyStorage() {
+      try {
+        localStorage.removeItem('KU_DEMO_PASSWORD');
+        sessionStorage.removeItem('KU_DEMO_PASSWORD');
+      } catch (e) {}
+    })();
 
     // Update Manager State
     let swRegistration = null;
@@ -523,6 +537,100 @@
       }
     }
 
+    // ===== IndexedDB 不可匯出密鑰庫 (Device-Bound Non-Exportable Vault) =====
+    const VAULT_DB_NAME = 'KuHubVaultDB';
+    const VAULT_DB_VERSION = 1;
+    const VAULT_STORE_NAME = 'auth_vault';
+
+    function openVaultDB() {
+      return new Promise((resolve, reject) => {
+        const req = indexedDB.open(VAULT_DB_NAME, VAULT_DB_VERSION);
+        req.onupgradeneeded = (e) => {
+          const db = e.target.result;
+          if (!db.objectStoreNames.contains(VAULT_STORE_NAME)) {
+            db.createObjectStore(VAULT_STORE_NAME, { keyPath: 'id' });
+          }
+        };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+    }
+
+    async function saveDeviceAuth(password) {
+      try {
+        const db = await openVaultDB();
+        // 生成不可匯出的原生 AES-GCM 裝置金鑰 (extractable: false)
+        const deviceKey = await window.crypto.subtle.generateKey(
+          { name: 'AES-GCM', length: 256 },
+          false,
+          ['encrypt', 'decrypt']
+        );
+        const iv = window.crypto.getRandomValues(new Uint8Array(12));
+        const enc = new TextEncoder();
+        const ciphertext = await window.crypto.subtle.encrypt(
+          { name: 'AES-GCM', iv: iv },
+          deviceKey,
+          enc.encode(password)
+        );
+        const record = {
+          id: 'device_auth',
+          deviceKey: deviceKey,
+          iv: iv,
+          ciphertext: ciphertext,
+          expiresAt: null // 永久保留，直到手動點擊鎖定或更換新密碼
+        };
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(VAULT_STORE_NAME, 'readwrite');
+          tx.objectStore(VAULT_STORE_NAME).put(record);
+          tx.oncomplete = () => resolve(true);
+          tx.onerror = () => reject(tx.error);
+        });
+      } catch (err) {
+        console.warn('saveDeviceAuth failed:', err);
+        return false;
+      }
+    }
+
+    async function getDeviceAuth() {
+      try {
+        const db = await openVaultDB();
+        const record = await new Promise((resolve, reject) => {
+          const tx = db.transaction(VAULT_STORE_NAME, 'readonly');
+          const req = tx.objectStore(VAULT_STORE_NAME).get('device_auth');
+          req.onsuccess = () => resolve(req.result);
+          req.onerror = () => reject(req.error);
+        });
+        if (!record) return null;
+        if (record.expiresAt && Date.now() > record.expiresAt) {
+          await clearDeviceAuth();
+          return null;
+        }
+        const decrypted = await window.crypto.subtle.decrypt(
+          { name: 'AES-GCM', iv: record.iv },
+          record.deviceKey,
+          record.ciphertext
+        );
+        return new TextDecoder().decode(decrypted);
+      } catch (err) {
+        console.warn('getDeviceAuth failed or expired:', err);
+        return null;
+      }
+    }
+
+    async function clearDeviceAuth() {
+      try {
+        const db = await openVaultDB();
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(VAULT_STORE_NAME, 'readwrite');
+          tx.objectStore(VAULT_STORE_NAME).delete('device_auth');
+          tx.oncomplete = () => resolve(true);
+          tx.onerror = () => reject(tx.error);
+        });
+      } catch (err) {
+        console.warn('clearDeviceAuth error:', err);
+      }
+    }
+
     function toggleHubPwdVisibility() {
       const input = document.getElementById('hubPwdInput');
       input.type = input.type === 'password' ? 'text' : 'password';
@@ -533,7 +641,7 @@
       const input = document.getElementById('hubPwdInput');
       const btn = document.getElementById('hubUnlockBtn');
       const errEl = document.getElementById('hubErrorMsg');
-      const remember = document.getElementById('hubRememberMe').checked;
+      const rememberDevice = document.getElementById('hubRememberDevice').checked;
       const pwd = input.value.trim();
 
       if (!pwd || !encryptedManifestData) return;
@@ -551,12 +659,14 @@
         );
         allDemos = JSON.parse(jsonStr);
 
-        // 保存密碼至 sessionStorage (同源子頁面與預覽 iframe 自動共享)
-        sessionStorage.setItem('KU_DEMO_PASSWORD', pwd);
-        if (remember) {
-          localStorage.setItem('KU_DEMO_PASSWORD', pwd);
+        // 僅保存在 JavaScript 記憶體變數中，嚴禁存入純文字 Storage
+        sessionMasterPassword = pwd;
+
+        // 若勾選保持解鎖，使用 IndexedDB 不可匯出密鑰進行安全封裝永久保存
+        if (rememberDevice) {
+          await saveDeviceAuth(pwd);
         } else {
-          localStorage.removeItem('KU_DEMO_PASSWORD');
+          await clearDeviceAuth();
         }
 
         setHubLockState(false);
@@ -567,7 +677,7 @@
         showAppToast({
           type: 'latest',
           title: '解密成功',
-          message: '已成功解鎖視覺化展示中心！',
+          message: rememberDevice ? '已在此裝置永久記住授權憑證！' : '已成功解鎖視覺化展示中心！',
           badge: '已授權',
           autoDismissMs: 2500
         });
@@ -581,21 +691,39 @@
       }
     }
 
-    function lockHub() {
-      sessionStorage.removeItem('KU_DEMO_PASSWORD');
-      localStorage.removeItem('KU_DEMO_PASSWORD');
+    async function lockHub() {
+      // 徹底清空記憶體憑證、IndexedDB 裝置授權與解密後資料
+      sessionMasterPassword = '';
+      allDemos = [];
+      await clearDeviceAuth();
+
+      const iframe = document.getElementById('viewerFrame');
+      if (iframe) {
+        iframe.removeAttribute('srcdoc');
+        iframe.src = 'about:blank';
+      }
+      const grid = document.getElementById('demosGrid');
+      if (grid) grid.innerHTML = '';
+      const input = document.getElementById('hubPwdInput');
+      if (input) input.value = '';
+
+      try {
+        sessionStorage.removeItem('KU_DEMO_PASSWORD');
+        localStorage.removeItem('KU_DEMO_PASSWORD');
+      } catch (e) {}
+
       setHubLockState(true);
       showAppToast({
         type: 'warn',
         title: '展示中心已鎖定',
-        message: '已清除工作階段授權憑證。',
+        message: '已清除裝置授權憑證與工作階段記憶體。',
         badge: '已鎖定',
         autoDismissMs: 2500
       });
       setTimeout(() => document.getElementById('hubPwdInput')?.focus(), 100);
     }
 
-    // Fetch Demos (支援未加密及 AES-256 加密格式，強制避免瀏覽器 HTTP 磁碟快取)
+    // Fetch Demos (嚴格僅接受 AES-256 加密格式，拒絕任何明文或未加密資料)
     async function loadDemos() {
       try {
         const res = await fetch('./data/demos.json?_t=' + Date.now(), { cache: 'no-store' });
@@ -607,35 +735,42 @@
           if (verEl) verEl.textContent = data.version;
         }
 
-        if (data.encrypted) {
-          encryptedManifestData = data;
-          const savedPwd = sessionStorage.getItem('KU_DEMO_PASSWORD') || localStorage.getItem('KU_DEMO_PASSWORD');
-          if (savedPwd) {
-            try {
-              const jsonStr = await decryptPayload(savedPwd, data.salt, data.iv, data.ciphertext);
-              allDemos = JSON.parse(jsonStr);
-              sessionStorage.setItem('KU_DEMO_PASSWORD', savedPwd);
-              setHubLockState(false);
-              renderDemos();
-              return;
-            } catch (e) {
-              console.warn('Saved password invalid, clearing:', e);
-              sessionStorage.removeItem('KU_DEMO_PASSWORD');
-              localStorage.removeItem('KU_DEMO_PASSWORD');
-            }
-          }
-          setHubLockState(true);
-        } else {
-          encryptedManifestData = null;
-          allDemos = data;
-          setHubLockState(false);
-          renderDemos();
+        // 嚴格拒絕未加密格式，杜絕任何明文外洩管道
+        if (!data || !data.encrypted) {
+          throw new Error('未加密或非法的展示資料格式，系統已拒絕存取！');
         }
+
+        encryptedManifestData = data;
+
+        // 嘗試從 IndexedDB 不可匯出密鑰庫自動恢復授權
+        const savedPwd = await getDeviceAuth();
+        if (savedPwd) {
+          try {
+            const jsonStr = await decryptPayload(savedPwd, data.salt, data.iv, data.ciphertext);
+            allDemos = JSON.parse(jsonStr);
+            sessionMasterPassword = savedPwd;
+            setHubLockState(false);
+            renderDemos();
+            showAppToast({
+              type: 'latest',
+              title: '自動驗證成功',
+              message: '已透過此裝置安全憑證快速解鎖！',
+              badge: '已授權',
+              autoDismissMs: 2500
+            });
+            return;
+          } catch (e) {
+            console.warn('Saved device auth invalid, clearing:', e);
+            await clearDeviceAuth();
+          }
+        }
+
+        setHubLockState(true);
       } catch (err) {
         console.error('Error loading demos:', err);
         document.getElementById('demosGrid').innerHTML = `
           <div class="col-span-full py-12 text-center text-rose-400 text-sm">
-            無法載入展示項目資料，請確認 data/demos.json 是否存在。
+            無法載入展示項目資料，請確認 data/demos.json 是否存在且為加密格式。
           </div>
         `;
       }
@@ -724,28 +859,60 @@
     }
 
     // Modal Viewer
-    function openViewerById(id) {
+    async function openViewerById(id) {
       const demo = allDemos.find(d => d.id === id);
       if (!demo) return;
-      openViewer(demo.url, demo.title);
+      await openViewer(demo.url, demo.title);
     }
 
-    function openViewer(url, title) {
+    async function openViewer(url, title) {
       const modal = document.getElementById('viewerModal');
       const iframe = document.getElementById('viewerFrame');
       const modalTitle = document.getElementById('modalTitle');
       const newTabBtn = document.getElementById('modalNewTabBtn');
 
       modalTitle.innerText = title;
-      iframe.src = url;
       newTabBtn.href = url;
       modal.classList.remove('hidden');
+
+      // 若在記憶體中具備解鎖密鑰，直接於本端記憶體解密 HTML 並透過 srcdoc 呈現於沙箱中 (禁止將密碼傳給展示頁面)
+      if (sessionMasterPassword) {
+        try {
+          const res = await fetch(url + '?_t=' + Date.now(), { cache: 'no-store' });
+          if (res.ok) {
+            const text = await res.text();
+            const startTag = '<script id="__PAYLOAD__" type="application/json">';
+            const endTag = '</script>';
+            const sIdx = text.indexOf(startTag);
+            const eIdx = text.indexOf(endTag, sIdx);
+            if (sIdx !== -1 && eIdx !== -1) {
+              const payload = JSON.parse(text.substring(sIdx + startTag.length, eIdx).trim());
+              const decryptedHtml = await decryptPayload(
+                sessionMasterPassword,
+                payload.salt,
+                payload.iv,
+                payload.ciphertext
+              );
+              iframe.removeAttribute('src');
+              iframe.srcdoc = decryptedHtml;
+              return;
+            }
+          }
+        } catch (e) {
+          console.warn('記憶體預覽解密異常，回退至獨立頁面加載:', e);
+        }
+      }
+
+      // 回退模式：直接載入 URL
+      iframe.removeAttribute('srcdoc');
+      iframe.src = url;
     }
 
     document.getElementById('closeViewerBtn').addEventListener('click', () => {
       const modal = document.getElementById('viewerModal');
       const iframe = document.getElementById('viewerFrame');
-      iframe.src = '';
+      iframe.removeAttribute('srcdoc');
+      iframe.src = 'about:blank';
       modal.classList.add('hidden');
     });
 

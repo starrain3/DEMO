@@ -1,0 +1,1071 @@
+<!DOCTYPE html>
+<html lang="zh-TW" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Ku Visual Hub - 互動視覺化展示中心</title>
+  
+  <!-- SEO & Social Meta -->
+  <meta name="description" content="Ku 工作區專屬視覺化展示中心，提供各項數據分析、籌碼動能、策略回測與原型互動展示。">
+  <meta name="theme-color" content="#0f172a">
+
+  <!-- PWA Meta Tags -->
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Ku Visual Hub">
+  <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+  <link rel="alternate icon" href="icons/icon-192.png">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              400: '#38bdf8',
+              500: '#0ea5e9',
+              600: '#0284c7',
+              700: '#0369a1'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0f172a; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #475569; }
+    .glass {
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col antialiased selection:bg-brand-500 selection:text-white">
+
+  <!-- Navbar -->
+  <header class="sticky top-0 z-30 border-b border-slate-800/80 glass px-4 lg:px-8 py-3.5 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-indigo-600 p-0.5 shadow-lg shadow-cyan-500/20 flex items-center justify-center">
+        <img src="icons/icon.svg" alt="Logo" class="w-full h-full rounded-[10px]">
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <h1 class="text-base lg:text-lg font-black tracking-wide bg-gradient-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-transparent">
+            Ku Visual Hub
+          </h1>
+          <span class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+            PWA
+          </span>
+        </div>
+        <p class="text-xs text-slate-400 hidden sm:block">ku_tools 視覺化展示與互動儀表板中心</p>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="flex items-center gap-2">
+      <!-- Manual Check Update Button -->
+      <button id="manualCheckUpdateBtn" class="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-cyan-500/40 text-slate-300 hover:text-white text-xs font-medium transition active:scale-95" title="檢查最新版本">
+        <i data-lucide="rotate-cw" id="manualCheckIcon" class="w-3.5 h-3.5 text-cyan-400 transition"></i>
+        <span id="manualCheckLabel" class="hidden sm:inline">檢查更新</span>
+      </button>
+
+      <!-- PWA Install Button (Hidden by default, shown when prompt available) -->
+      <button id="pwaInstallBtn" class="hidden items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white text-xs font-semibold shadow-md shadow-cyan-500/20 transition active:scale-95">
+        <i data-lucide="download" class="w-3.5 h-3.5"></i>
+        <span>安裝 PWA</span>
+      </button>
+
+      <!-- Lock / Logout Button -->
+      <button id="lockStatusBtn" class="hidden items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-rose-500/40 text-slate-300 hover:text-rose-400 text-xs font-medium transition active:scale-95" title="鎖定展示中心">
+        <i data-lucide="lock" class="w-3.5 h-3.5 text-rose-400"></i>
+        <span class="hidden sm:inline">鎖定</span>
+      </button>
+
+      <!-- GitHub Link -->
+      <a href="https://github.com/starrain3/DEMO" target="_blank" rel="noopener noreferrer" class="p-2 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white transition" title="GitHub Repository">
+        <i data-lucide="github" class="w-4 h-4"></i>
+      </a>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="border-b border-slate-900 bg-gradient-to-b from-slate-900/50 via-slate-950 to-slate-950 px-4 lg:px-8 py-8 lg:py-10">
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+      <div class="space-y-2">
+        <div class="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-slate-800/80 border border-slate-700/60 text-xs text-slate-300">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span>GitHub Pages & 離線快取就緒</span>
+        </div>
+        <h2 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+          互動視覺化展示庫
+        </h2>
+        <p class="text-sm text-slate-400 max-w-2xl leading-relaxed">
+          所有在工作區中產出的策略分析、籌碼動能、資料模型與功能原型，均會自動整合為互動式展示模組，隨時點擊即時探索。
+        </p>
+      </div>
+
+      <!-- Quick Metrics -->
+      <div class="flex items-center gap-2.5 sm:gap-3 flex-wrap sm:flex-nowrap">
+        <div class="px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl bg-slate-900/80 border border-slate-800/80 text-center flex-1 sm:flex-initial min-w-[85px] sm:min-w-[100px]">
+          <div id="statTotalDemos" class="text-lg sm:text-xl font-bold text-cyan-400 font-mono">2</div>
+          <div class="text-[10px] sm:text-[11px] text-slate-500 mt-0.5">展示項目</div>
+        </div>
+        <div class="px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl bg-slate-900/80 border border-slate-800/80 text-center flex-1 sm:flex-initial min-w-[85px] sm:min-w-[100px]">
+          <div class="text-lg sm:text-xl font-bold text-emerald-400 font-mono">Ready</div>
+          <div class="text-[10px] sm:text-[11px] text-slate-500 mt-0.5">PWA 狀態</div>
+        </div>
+        <div id="versionCard" class="px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl bg-slate-900/80 border border-slate-800/80 hover:border-cyan-500/50 text-center flex-1 sm:flex-initial min-w-[85px] sm:min-w-[100px] cursor-pointer transition group" title="點擊檢查最新版本">
+          <div class="text-lg sm:text-xl font-bold text-indigo-400 group-hover:text-cyan-400 font-mono transition flex items-center justify-center gap-1">
+            <span id="appVersionDisplay">1.2.0</span>
+            <i data-lucide="refresh-cw" class="w-3 h-3 opacity-0 group-hover:opacity-100 transition hidden sm:inline-block"></i>
+          </div>
+          <div class="text-[10px] sm:text-[11px] text-slate-500 group-hover:text-slate-300 mt-0.5 transition">版本 (點擊檢查)</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main Content -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 lg:px-8 py-6 space-y-6">
+    <!-- Unlock Gate Box (Displayed when encrypted repository is locked) -->
+    <div id="unlockGateBox" class="hidden py-8 sm:py-12 px-4 flex justify-center items-center">
+      <div class="w-full max-w-md bg-slate-900/90 border border-cyan-500/30 rounded-2xl p-6 sm:p-8 shadow-2xl shadow-cyan-500/10 backdrop-blur-xl text-center">
+        <div class="w-14 h-14 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-indigo-500/20 border border-cyan-500/30 flex items-center justify-center text-2xl shadow-lg shadow-cyan-500/10">
+          🔐
+        </div>
+        <h3 class="text-lg font-bold text-white tracking-wide">展示中心已加密保護</h3>
+        <p class="text-xs text-slate-400 mt-2 leading-relaxed">
+          所有視覺化展示項目與數據模型均已透過 AES-256 加密保護。<br>請輸入存取主密碼以解鎖儀表板。
+        </p>
+
+        <form id="hubUnlockForm" class="mt-6 text-left space-y-4" onsubmit="handleHubUnlock(event)">
+          <div>
+            <label for="hubPwdInput" class="block text-[11px] font-semibold text-slate-300 uppercase tracking-wider mb-1.5">存取主密碼</label>
+            <div class="relative flex items-center">
+              <input type="password" id="hubPwdInput" placeholder="請輸入解鎖密碼..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition" required>
+              <button type="button" onclick="toggleHubPwdVisibility()" class="absolute right-3 text-slate-500 hover:text-slate-300 transition text-sm" title="顯示/隱藏密碼">👁️</button>
+            </div>
+          </div>
+
+          <label class="flex items-center gap-2 text-xs text-slate-300 cursor-pointer select-none">
+            <input type="checkbox" id="hubRememberDevice" class="accent-cyan-500 rounded" checked>
+            <span>在此裝置永久保持解鎖（免重複輸入密碼）</span>
+          </label>
+
+          <div class="text-[10px] text-slate-500 flex items-center gap-1.5 leading-relaxed">
+            <i data-lucide="shield-check" class="w-3.5 h-3.5 text-cyan-400 shrink-0"></i>
+            <span>安全保護：採用 IndexedDB 不可匯出密鑰隔離，密碼本體絕不寫入純文字儲存區</span>
+          </div>
+
+          <button type="submit" id="hubUnlockBtn" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white text-xs font-bold shadow-lg shadow-cyan-500/20 transition active:scale-95">
+            解鎖展示中心
+          </button>
+
+          <div id="hubErrorMsg" class="hidden text-xs text-rose-400 bg-rose-500/10 border border-rose-500/20 rounded-lg p-2.5 text-center"></div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Unlocked Content Area -->
+    <div id="unlockedContentBox" class="space-y-6">
+      <!-- Filters & Search Toolbar -->
+      <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+        <!-- Category Pills -->
+        <div id="categoryContainer" class="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
+          <button data-category="ALL" class="cat-pill active px-3.5 py-1.5 rounded-lg text-xs font-semibold transition bg-cyan-500 text-white shadow-sm shadow-cyan-500/20">
+            全部項目
+          </button>
+          <button data-category="財務與籌碼" class="cat-pill px-3.5 py-1.5 rounded-lg text-xs font-semibold transition bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-800">
+            財務與籌碼
+          </button>
+          <button data-category="策略回測" class="cat-pill px-3.5 py-1.5 rounded-lg text-xs font-semibold transition bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-800">
+            策略回測
+          </button>
+          <button data-category="技術原型" class="cat-pill px-3.5 py-1.5 rounded-lg text-xs font-semibold transition bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-800">
+            技術原型
+          </button>
+          <button data-category="美食與生活風格" class="cat-pill px-3.5 py-1.5 rounded-lg text-xs font-semibold transition bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-800">
+            美食與生活風格
+          </button>
+        </div>
+
+        <!-- Search Input -->
+        <div class="relative min-w-[240px]">
+          <i data-lucide="search" class="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2"></i>
+          <input id="searchInput" type="text" placeholder="搜尋視覺化名稱或標籤..." class="w-full bg-slate-900 border border-slate-800 rounded-lg pl-9 pr-4 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition">
+        </div>
+      </div>
+
+      <!-- Cards Grid -->
+      <div id="demosGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <!-- Loading skeleton -->
+        <div class="col-span-full py-16 text-center text-slate-500 text-sm flex flex-col items-center gap-3">
+          <i data-lucide="loader-2" class="w-6 h-6 animate-spin text-cyan-500"></i>
+          <span>正在載入展示清單...</span>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Interactive Viewer Modal (Preview inside PWA) -->
+  <div id="viewerModal" class="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md hidden flex flex-col">
+    <!-- Modal Header -->
+    <div class="px-4 py-3 bg-slate-900 border-b border-slate-800 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <button id="closeViewerBtn" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium transition">
+          <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
+          <span>返回清單</span>
+        </button>
+        <h3 id="modalTitle" class="text-sm font-bold text-white truncate max-w-[200px] sm:max-w-md">展示預覽</h3>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="reloadIframeBtn" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition" title="重新載入">
+          <i data-lucide="rotate-cw" class="w-4 h-4"></i>
+        </button>
+        <a id="modalNewTabBtn" href="#" target="_blank" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition" title="新分頁開啟">
+          <i data-lucide="external-link" class="w-4 h-4"></i>
+        </a>
+      </div>
+    </div>
+    <!-- Modal Body (Iframe) -->
+    <div class="flex-1 w-full bg-slate-950 relative">
+      <iframe id="viewerFrame" sandbox="allow-scripts allow-forms allow-downloads allow-modals" class="w-full h-full border-none"></iframe>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="border-t border-slate-900 bg-slate-950 px-4 lg:px-8 py-6 text-center text-xs text-slate-500">
+    <p>© 2026 Ku Visual Hub • Built with Modern Web & PWA Technology for GitHub Pages</p>
+  </footer>
+
+  <!-- App Script -->
+  <script>
+    // State
+    let allDemos = [];
+    let currentCategory = 'ALL';
+    let searchQuery = '';
+    let deferredPrompt = null;
+    let sessionMasterPassword = ''; // 僅於記憶體暫存，嚴禁存入 Storage
+
+    // 主動清除舊版本殘留的本機儲存憑證
+    (function cleanupLegacyStorage() {
+      try {
+        localStorage.removeItem('KU_DEMO_PASSWORD');
+        sessionStorage.removeItem('KU_DEMO_PASSWORD');
+      } catch (e) {}
+    })();
+
+    // Update Manager State
+    let swRegistration = null;
+    let newWorkerWaiting = null;
+    let lastCheckedTime = Date.now();
+    let toastDismissTimer = null;
+    const CHECK_THROTTLE_MS = 15 * 60 * 1000; // 15 mins throttle
+
+    function showAppToast({ type, title, message, badge, showAction = false, actionText = '立即更新', onAction = null, autoDismissMs = 0 }) {
+      clearTimeout(toastDismissTimer);
+      const toast = document.getElementById('appToast');
+      const iconContainer = document.getElementById('toastIconContainer');
+      const titleEl = document.getElementById('toastTitle');
+      const badgeEl = document.getElementById('toastBadge');
+      const msgEl = document.getElementById('toastMessage');
+      const actionBtn = document.getElementById('toastActionBtn');
+
+      if (!toast) return;
+
+      titleEl.innerText = title;
+      msgEl.innerText = message;
+      badgeEl.innerText = badge || '';
+
+      if (type === 'update') {
+        toast.className = 'fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:bottom-6 sm:max-w-md z-50 p-4 rounded-2xl bg-slate-900/95 border border-cyan-500/50 shadow-2xl shadow-cyan-500/25 backdrop-blur-xl transform transition-all duration-300 translate-y-0 opacity-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3.5';
+        iconContainer.className = 'w-9 h-9 rounded-xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 flex items-center justify-center shrink-0 mt-0.5 sm:mt-0';
+        iconContainer.innerHTML = '<i data-lucide="sparkles" class="w-4 h-4"></i>';
+        badgeEl.className = 'px-1.5 py-0.5 rounded text-[10px] bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-normal';
+      } else if (type === 'latest') {
+        toast.className = 'fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:bottom-6 sm:max-w-md z-50 p-4 rounded-2xl bg-slate-900/95 border border-emerald-500/50 shadow-2xl shadow-emerald-500/20 backdrop-blur-xl transform transition-all duration-300 translate-y-0 opacity-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3.5';
+        iconContainer.className = 'w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center shrink-0 mt-0.5 sm:mt-0';
+        iconContainer.innerHTML = '<i data-lucide="check-circle-2" class="w-4 h-4"></i>';
+        badgeEl.className = 'px-1.5 py-0.5 rounded text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-normal';
+      } else if (type === 'checking') {
+        toast.className = 'fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:bottom-6 sm:max-w-md z-50 p-4 rounded-2xl bg-slate-900/95 border border-slate-700 shadow-2xl backdrop-blur-xl transform transition-all duration-300 translate-y-0 opacity-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3.5';
+        iconContainer.className = 'w-9 h-9 rounded-xl bg-slate-800 text-cyan-400 border border-slate-700 flex items-center justify-center shrink-0 mt-0.5 sm:mt-0';
+        iconContainer.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin text-cyan-400"></i>';
+        badgeEl.className = 'px-1.5 py-0.5 rounded text-[10px] bg-slate-800 text-slate-300 border border-slate-700 font-normal';
+      } else if (type === 'warn') {
+        toast.className = 'fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:bottom-6 sm:max-w-md z-50 p-4 rounded-2xl bg-slate-900/95 border border-amber-500/50 shadow-2xl shadow-amber-500/20 backdrop-blur-xl transform transition-all duration-300 translate-y-0 opacity-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3.5';
+        iconContainer.className = 'w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center shrink-0 mt-0.5 sm:mt-0';
+        iconContainer.innerHTML = '<i data-lucide="alert-circle" class="w-4 h-4"></i>';
+        badgeEl.className = 'px-1.5 py-0.5 rounded text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/30 font-normal';
+      }
+
+      if (showAction) {
+        actionBtn.classList.remove('hidden');
+        actionBtn.innerHTML = `<i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i><span>${actionText}</span>`;
+        actionBtn.onclick = onAction;
+      } else {
+        actionBtn.classList.add('hidden');
+      }
+
+      if (window.lucide) lucide.createIcons();
+
+      if (autoDismissMs > 0) {
+        toastDismissTimer = setTimeout(() => {
+          hideAppToast();
+        }, autoDismissMs);
+      }
+    }
+
+    function hideAppToast() {
+      clearTimeout(toastDismissTimer);
+      const toast = document.getElementById('appToast');
+      if (toast) {
+        toast.className = 'fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:bottom-6 sm:max-w-md z-50 p-4 rounded-2xl bg-slate-900/95 border border-cyan-500/50 shadow-2xl backdrop-blur-xl transform transition-all duration-300 translate-y-32 opacity-0 pointer-events-none flex flex-col sm:flex-row sm:items-center justify-between gap-3.5';
+      }
+    }
+    window.hideAppToast = hideAppToast;
+
+    function showUpdateToast(worker) {
+      newWorkerWaiting = worker;
+      showAppToast({
+        type: 'update',
+        title: '發現新版本！',
+        message: '系統已完成背景更新下載，立即套用以取得最新展示內容。',
+        badge: '可套用',
+        showAction: true,
+        actionText: '立即更新',
+        onAction: () => applyUpdateAction()
+      });
+    }
+
+    async function applyUpdateAction() {
+      const actionBtn = document.getElementById('toastActionBtn');
+      if (actionBtn) {
+        actionBtn.disabled = true;
+        actionBtn.classList.add('opacity-75', 'cursor-wait');
+        actionBtn.innerHTML = '<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i><span>正在更新...</span>';
+        if (window.lucide) lucide.createIcons();
+      }
+
+      // 1. Dispatch SKIP_WAITING to all possible worker targets
+      const targets = [
+        newWorkerWaiting,
+        swRegistration?.waiting,
+        swRegistration?.installing,
+        navigator.serviceWorker?.controller
+      ].filter(Boolean);
+
+      targets.forEach((worker) => {
+        try {
+          worker.postMessage({ type: 'SKIP_WAITING' });
+        } catch (e) {
+          console.warn('Failed to postMessage to worker:', e);
+        }
+      });
+
+      // 2. Guaranteed reload fallback: Reload after 350ms even if controllerchange is swallowed
+      setTimeout(() => {
+        window.location.reload();
+      }, 350);
+    }
+
+    // Auto-Reload when new SW takes control
+    let isRefreshing = false;
+    navigator.serviceWorker?.addEventListener('controllerchange', () => {
+      if (!isRefreshing) {
+        isRefreshing = true;
+        window.location.reload();
+      }
+    });
+
+    // Service Worker Registration & Lifecycle Tracking
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', async () => {
+        try {
+          swRegistration = await navigator.serviceWorker.register('./sw.js');
+          console.log('[PWA] Service Worker registered:', swRegistration.scope);
+
+          // If there is already a waiting worker from previous visit
+          if (swRegistration.waiting) {
+            showUpdateToast(swRegistration.waiting);
+          }
+
+          // Listen for new updates found
+          swRegistration.addEventListener('updatefound', () => {
+            const installingWorker = swRegistration.installing;
+            if (!installingWorker) return;
+            installingWorker.addEventListener('statechange', () => {
+              if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                // New version downloaded & waiting
+                showUpdateToast(installingWorker);
+              }
+            });
+          });
+
+          // Setup Smart Auto-Check Triggers
+          setupUpdateCheckers();
+        } catch (err) {
+          console.warn('[PWA] Service Worker registration failed:', err);
+        }
+      });
+    }
+
+    // Trigger update check safely with throttle (costs almost 0 resources)
+    function checkForUpdates(force = false) {
+      if (!swRegistration || !navigator.onLine) return;
+      const now = Date.now();
+      if (!force && (now - lastCheckedTime < CHECK_THROTTLE_MS)) return;
+      lastCheckedTime = now;
+      console.log('[PWA] Checking for updates in background...');
+      swRegistration.update().catch((err) => console.log('[PWA] Update check failed:', err));
+    }
+
+    function setupUpdateCheckers() {
+      // 1. When user switches back to tab or unlocks device
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+          checkForUpdates();
+        }
+      });
+
+      // 2. When device comes back online
+      window.addEventListener('online', () => {
+        checkForUpdates(true);
+      });
+
+      // 3. Periodic low-frequency check (every 30 mins)
+      setInterval(() => {
+        checkForUpdates();
+      }, 30 * 60 * 1000);
+    }
+
+    // PWA Install prompt handling
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      const btn = document.getElementById('pwaInstallBtn');
+      if (btn) {
+        btn.classList.remove('hidden');
+        btn.classList.add('flex');
+      }
+    });
+
+    document.getElementById('pwaInstallBtn').addEventListener('click', async () => {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      console.log('[PWA] User response:', outcome);
+      deferredPrompt = null;
+      document.getElementById('pwaInstallBtn').classList.add('hidden');
+    });
+
+    // Encryption & Hub Security State
+    let encryptedManifestData = null;
+
+    async function decryptPayload(password, saltB64, ivB64, ctB64) {
+      const salt = Uint8Array.from(atob(saltB64), c => c.charCodeAt(0));
+      const iv = Uint8Array.from(atob(ivB64), c => c.charCodeAt(0));
+      const ct = Uint8Array.from(atob(ctB64), c => c.charCodeAt(0));
+
+      const enc = new TextEncoder();
+      const keyMaterial = await window.crypto.subtle.importKey(
+        'raw',
+        enc.encode(password),
+        'PBKDF2',
+        false,
+        ['deriveKey']
+      );
+
+      const key = await window.crypto.subtle.deriveKey(
+        {
+          name: 'PBKDF2',
+          salt: salt,
+          iterations: 100000,
+          hash: 'SHA-256'
+        },
+        keyMaterial,
+        { name: 'AES-GCM', length: 256 },
+        false,
+        ['decrypt']
+      );
+
+      const decrypted = await window.crypto.subtle.decrypt(
+        { name: 'AES-GCM', iv: iv },
+        key,
+        ct
+      );
+
+      return new TextDecoder().decode(decrypted);
+    }
+
+    function setHubLockState(isLocked) {
+      const gate = document.getElementById('unlockGateBox');
+      const content = document.getElementById('unlockedContentBox');
+      const lockBtn = document.getElementById('lockStatusBtn');
+      const statEl = document.getElementById('statTotalDemos');
+
+      if (isLocked) {
+        gate.classList.remove('hidden');
+        gate.classList.add('flex');
+        content.classList.add('hidden');
+        lockBtn.classList.add('hidden');
+        lockBtn.classList.remove('flex');
+        statEl.innerText = '🔒';
+        allDemos = [];
+        renderDemos();
+      } else {
+        gate.classList.add('hidden');
+        gate.classList.remove('flex');
+        content.classList.remove('hidden');
+        lockBtn.classList.remove('hidden');
+        lockBtn.classList.add('flex');
+        statEl.innerText = allDemos.length;
+      }
+    }
+
+    // ===== IndexedDB 不可匯出密鑰庫 (Device-Bound Non-Exportable Vault) =====
+    const VAULT_DB_NAME = 'KuHubVaultDB';
+    const VAULT_DB_VERSION = 1;
+    const VAULT_STORE_NAME = 'auth_vault';
+
+    function openVaultDB() {
+      return new Promise((resolve, reject) => {
+        const req = indexedDB.open(VAULT_DB_NAME, VAULT_DB_VERSION);
+        req.onupgradeneeded = (e) => {
+          const db = e.target.result;
+          if (!db.objectStoreNames.contains(VAULT_STORE_NAME)) {
+            db.createObjectStore(VAULT_STORE_NAME, { keyPath: 'id' });
+          }
+        };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+    }
+
+    async function saveDeviceAuth(password) {
+      try {
+        const db = await openVaultDB();
+        // 生成不可匯出的原生 AES-GCM 裝置金鑰 (extractable: false)
+        const deviceKey = await window.crypto.subtle.generateKey(
+          { name: 'AES-GCM', length: 256 },
+          false,
+          ['encrypt', 'decrypt']
+        );
+        const iv = window.crypto.getRandomValues(new Uint8Array(12));
+        const enc = new TextEncoder();
+        const ciphertext = await window.crypto.subtle.encrypt(
+          { name: 'AES-GCM', iv: iv },
+          deviceKey,
+          enc.encode(password)
+        );
+        const record = {
+          id: 'device_auth',
+          deviceKey: deviceKey,
+          iv: iv,
+          ciphertext: ciphertext,
+          expiresAt: null // 永久保留，直到手動點擊鎖定或更換新密碼
+        };
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(VAULT_STORE_NAME, 'readwrite');
+          tx.objectStore(VAULT_STORE_NAME).put(record);
+          tx.oncomplete = () => resolve(true);
+          tx.onerror = () => reject(tx.error);
+        });
+      } catch (err) {
+        console.warn('saveDeviceAuth failed:', err);
+        return false;
+      }
+    }
+
+    async function getDeviceAuth() {
+      try {
+        const db = await openVaultDB();
+        const record = await new Promise((resolve, reject) => {
+          const tx = db.transaction(VAULT_STORE_NAME, 'readonly');
+          const req = tx.objectStore(VAULT_STORE_NAME).get('device_auth');
+          req.onsuccess = () => resolve(req.result);
+          req.onerror = () => reject(req.error);
+        });
+        if (!record) return null;
+        if (record.expiresAt && Date.now() > record.expiresAt) {
+          await clearDeviceAuth();
+          return null;
+        }
+        const decrypted = await window.crypto.subtle.decrypt(
+          { name: 'AES-GCM', iv: record.iv },
+          record.deviceKey,
+          record.ciphertext
+        );
+        return new TextDecoder().decode(decrypted);
+      } catch (err) {
+        console.warn('getDeviceAuth failed or expired:', err);
+        return null;
+      }
+    }
+
+    async function clearDeviceAuth() {
+      try {
+        const db = await openVaultDB();
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(VAULT_STORE_NAME, 'readwrite');
+          tx.objectStore(VAULT_STORE_NAME).delete('device_auth');
+          tx.oncomplete = () => resolve(true);
+          tx.onerror = () => reject(tx.error);
+        });
+      } catch (err) {
+        console.warn('clearDeviceAuth error:', err);
+      }
+    }
+
+    function toggleHubPwdVisibility() {
+      const input = document.getElementById('hubPwdInput');
+      input.type = input.type === 'password' ? 'text' : 'password';
+    }
+
+    async function handleHubUnlock(event) {
+      event.preventDefault();
+      const input = document.getElementById('hubPwdInput');
+      const btn = document.getElementById('hubUnlockBtn');
+      const errEl = document.getElementById('hubErrorMsg');
+      const rememberDevice = document.getElementById('hubRememberDevice').checked;
+      const pwd = input.value.trim();
+
+      if (!pwd || !encryptedManifestData) return;
+
+      btn.disabled = true;
+      btn.innerText = '正在驗證並解密...';
+      errEl.classList.add('hidden');
+
+      try {
+        const jsonStr = await decryptPayload(
+          pwd,
+          encryptedManifestData.salt,
+          encryptedManifestData.iv,
+          encryptedManifestData.ciphertext
+        );
+        allDemos = JSON.parse(jsonStr);
+
+        // 僅保存在 JavaScript 記憶體變數中，嚴禁存入純文字 Storage
+        sessionMasterPassword = pwd;
+
+        // 若勾選保持解鎖，使用 IndexedDB 不可匯出密鑰進行安全封裝永久保存
+        if (rememberDevice) {
+          await saveDeviceAuth(pwd);
+        } else {
+          await clearDeviceAuth();
+        }
+
+        setHubLockState(false);
+        renderDemos();
+        btn.disabled = false;
+        btn.innerText = '解鎖展示中心';
+        input.value = '';
+        showAppToast({
+          type: 'latest',
+          title: '解密成功',
+          message: rememberDevice ? '已在此裝置永久記住授權憑證！' : '已成功解鎖視覺化展示中心！',
+          badge: '已授權',
+          autoDismissMs: 2500
+        });
+      } catch (err) {
+        console.error('Hub unlock failed:', err);
+        errEl.innerText = '密碼錯誤，無法解密展示資料！';
+        errEl.classList.remove('hidden');
+        btn.disabled = false;
+        btn.innerText = '解鎖展示中心';
+        input.select();
+      }
+    }
+
+    async function lockHub() {
+      // 徹底清空記憶體憑證、IndexedDB 裝置授權與解密後資料
+      sessionMasterPassword = '';
+      allDemos = [];
+      await clearDeviceAuth();
+
+      const iframe = document.getElementById('viewerFrame');
+      if (iframe) {
+        iframe.removeAttribute('srcdoc');
+        iframe.src = 'about:blank';
+      }
+      const grid = document.getElementById('demosGrid');
+      if (grid) grid.innerHTML = '';
+      const input = document.getElementById('hubPwdInput');
+      if (input) input.value = '';
+
+      try {
+        sessionStorage.removeItem('KU_DEMO_PASSWORD');
+        localStorage.removeItem('KU_DEMO_PASSWORD');
+      } catch (e) {}
+
+      setHubLockState(true);
+      showAppToast({
+        type: 'warn',
+        title: '展示中心已鎖定',
+        message: '已清除裝置授權憑證與工作階段記憶體。',
+        badge: '已鎖定',
+        autoDismissMs: 2500
+      });
+      setTimeout(() => document.getElementById('hubPwdInput')?.focus(), 100);
+    }
+
+    // Fetch Demos (嚴格僅接受 AES-256 加密格式，拒絕任何明文或未加密資料)
+    async function loadDemos() {
+      try {
+        const res = await fetch('./data/demos.json?_t=' + Date.now(), { cache: 'no-store' });
+        if (!res.ok) throw new Error('Failed to load demos.json');
+        const data = await res.json();
+
+        if (data.version) {
+          const verEl = document.getElementById('appVersionDisplay');
+          if (verEl) verEl.textContent = data.version;
+        }
+
+        // 嚴格拒絕未加密格式，杜絕任何明文外洩管道
+        if (!data || !data.encrypted) {
+          throw new Error('未加密或非法的展示資料格式，系統已拒絕存取！');
+        }
+
+        encryptedManifestData = data;
+
+        // 嘗試從 IndexedDB 不可匯出密鑰庫自動恢復授權
+        const savedPwd = await getDeviceAuth();
+        if (savedPwd) {
+          try {
+            const jsonStr = await decryptPayload(savedPwd, data.salt, data.iv, data.ciphertext);
+            allDemos = JSON.parse(jsonStr);
+            sessionMasterPassword = savedPwd;
+            setHubLockState(false);
+            renderDemos();
+            showAppToast({
+              type: 'latest',
+              title: '自動驗證成功',
+              message: '已透過此裝置安全憑證快速解鎖！',
+              badge: '已授權',
+              autoDismissMs: 2500
+            });
+            return;
+          } catch (e) {
+            console.warn('Saved device auth invalid, clearing:', e);
+            await clearDeviceAuth();
+          }
+        }
+
+        setHubLockState(true);
+      } catch (err) {
+        console.error('Error loading demos:', err);
+        document.getElementById('demosGrid').innerHTML = `
+          <div class="col-span-full py-12 text-center text-rose-400 text-sm">
+            無法載入展示項目資料，請確認 data/demos.json 是否存在且為加密格式。
+          </div>
+        `;
+      }
+    }
+
+    // Render Demos
+    function renderDemos() {
+      const statTotalEl = document.getElementById('statTotalDemos');
+      if (statTotalEl) statTotalEl.textContent = allDemos.length;
+
+      const container = document.getElementById('demosGrid');
+      const filtered = allDemos.filter((demo) => {
+        const matchesCategory = (currentCategory === 'ALL' || demo.category === currentCategory);
+        const q = searchQuery.toLowerCase();
+        const matchesSearch = !q || 
+          demo.title.toLowerCase().includes(q) || 
+          demo.description.toLowerCase().includes(q) || 
+          (demo.tags && demo.tags.some(t => t.toLowerCase().includes(q)));
+        return matchesCategory && matchesSearch;
+      });
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="col-span-full py-16 text-center text-slate-500 text-sm flex flex-col items-center gap-2">
+            <i data-lucide="inbox" class="w-8 h-8 text-slate-600"></i>
+            <span>尚無符合條件的展示項目</span>
+          </div>
+        `;
+        lucide.createIcons();
+        return;
+      }
+
+      container.innerHTML = filtered.map((demo) => {
+        const tagsHtml = (demo.tags || []).map(tag => `
+          <span class="px-2 py-0.5 rounded text-[11px] bg-slate-800 text-slate-300 border border-slate-700/60 font-mono">${tag}</span>
+        `).join('');
+
+        const badgeHtml = demo.badge ? `
+          <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">
+            ${demo.badge}
+          </span>
+        ` : '';
+
+        return `
+          <div class="group bg-slate-900 border border-slate-800/80 hover:border-cyan-500/40 rounded-2xl p-5 shadow-lg hover:shadow-cyan-500/5 transition-all duration-300 flex flex-col justify-between">
+            <div class="space-y-3">
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-xs font-semibold text-slate-400 flex items-center gap-1.5">
+                  <span class="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
+                  ${demo.category || '未分類'}
+                </span>
+                ${badgeHtml}
+              </div>
+
+              <div>
+                <h4 class="text-base font-bold text-white group-hover:text-cyan-400 transition">
+                  ${demo.title}
+                </h4>
+                <p class="text-xs text-slate-400 mt-1.5 leading-relaxed line-clamp-2">
+                  ${demo.description}
+                </p>
+              </div>
+
+              <div class="flex flex-wrap gap-1.5 pt-1">
+                ${tagsHtml}
+              </div>
+            </div>
+
+            <div class="pt-5 mt-4 border-t border-slate-800/60 flex items-center justify-between gap-2">
+              <span class="text-[11px] text-slate-500 font-mono">${demo.date || ''}</span>
+              <div class="flex items-center gap-2">
+                <button onclick="openViewerById('${demo.id}')" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 text-xs font-semibold border border-cyan-500/30 transition">
+                  <i data-lucide="play" class="w-3.5 h-3.5"></i>
+                  <span>預覽</span>
+                </button>
+                <a href="${demo.url}" target="_blank" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-200 transition" title="另開新分頁">
+                  <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+                </a>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      lucide.createIcons();
+    }
+
+    // Modal Viewer
+    async function openViewerById(id) {
+      const demo = allDemos.find(d => d.id === id);
+      if (!demo) return;
+      await openViewer(demo.url, demo.title);
+    }
+
+    async function openViewer(url, title) {
+      const modal = document.getElementById('viewerModal');
+      const iframe = document.getElementById('viewerFrame');
+      const modalTitle = document.getElementById('modalTitle');
+      const newTabBtn = document.getElementById('modalNewTabBtn');
+
+      modalTitle.innerText = title;
+      newTabBtn.href = url;
+      modal.classList.remove('hidden');
+
+      // 若在記憶體中具備解鎖密鑰，直接於本端記憶體解密 HTML 並透過 srcdoc 呈現於沙箱中 (禁止將密碼傳給展示頁面)
+      if (sessionMasterPassword) {
+        try {
+          const res = await fetch(url + '?_t=' + Date.now(), { cache: 'no-store' });
+          if (res.ok) {
+            const text = await res.text();
+            const startTag = '<script id="__PAYLOAD__" type="application/json">';
+            const endTag = '</script>';
+            const sIdx = text.indexOf(startTag);
+            const eIdx = text.indexOf(endTag, sIdx);
+            if (sIdx !== -1 && eIdx !== -1) {
+              const payload = JSON.parse(text.substring(sIdx + startTag.length, eIdx).trim());
+              const decryptedHtml = await decryptPayload(
+                sessionMasterPassword,
+                payload.salt,
+                payload.iv,
+                payload.ciphertext
+              );
+              iframe.removeAttribute('src');
+              iframe.srcdoc = decryptedHtml;
+              return;
+            }
+          }
+        } catch (e) {
+          console.warn('記憶體預覽解密異常，回退至獨立頁面加載:', e);
+        }
+      }
+
+      // 回退模式：直接載入 URL
+      iframe.removeAttribute('srcdoc');
+      iframe.src = url;
+    }
+
+    document.getElementById('closeViewerBtn').addEventListener('click', () => {
+      const modal = document.getElementById('viewerModal');
+      const iframe = document.getElementById('viewerFrame');
+      iframe.removeAttribute('srcdoc');
+      iframe.src = 'about:blank';
+      modal.classList.add('hidden');
+    });
+
+    document.getElementById('reloadIframeBtn').addEventListener('click', () => {
+      const iframe = document.getElementById('viewerFrame');
+      if (iframe.src) iframe.src = iframe.src;
+    });
+
+    // Category Filter Pills
+    document.querySelectorAll('.cat-pill').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.cat-pill').forEach(b => {
+          b.classList.remove('bg-cyan-500', 'text-white', 'shadow-sm', 'shadow-cyan-500/20');
+          b.classList.add('bg-slate-900', 'text-slate-400', 'border', 'border-slate-800');
+        });
+        btn.classList.add('bg-cyan-500', 'text-white', 'shadow-sm', 'shadow-cyan-500/20');
+        btn.classList.remove('bg-slate-900', 'text-slate-400', 'border', 'border-slate-800');
+        currentCategory = btn.getAttribute('data-category');
+        renderDemos();
+      });
+    });
+
+    // Search Input Listener
+    document.getElementById('searchInput').addEventListener('input', (e) => {
+      searchQuery = e.target.value.trim();
+      renderDemos();
+    });
+
+    // User Manual Check Update Flow with Full Interactive Feedback
+    let isCheckingManually = false;
+    async function handleManualCheck() {
+      if (isCheckingManually) return;
+      isCheckingManually = true;
+
+      const btn = document.getElementById('manualCheckUpdateBtn');
+      const icon = document.getElementById('manualCheckIcon');
+      const label = document.getElementById('manualCheckLabel');
+
+      if (icon) icon.classList.add('animate-spin');
+      if (label) label.innerText = '檢查中...';
+
+      // Show immediate checking toast so user clearly knows progress
+      showAppToast({
+        type: 'checking',
+        title: '正在檢查版本...',
+        message: '正在連線確認 GitHub 遠端與本地快取資料庫狀態...',
+        badge: '檢查中'
+      });
+
+      // 1. If there is already a waiting worker, show update toast immediately
+      if (swRegistration && swRegistration.waiting) {
+        showUpdateToast(swRegistration.waiting);
+        if (icon) icon.classList.remove('animate-spin');
+        if (label) label.innerText = '可更新！';
+        isCheckingManually = false;
+        return;
+      }
+
+      try {
+        // Also refresh demos list
+        await loadDemos();
+
+        if (swRegistration) {
+          await swRegistration.update();
+        }
+
+        // Wait brief delay to let updatefound trigger if a new SW is discovered
+        await new Promise(r => setTimeout(r, 900));
+
+        if (swRegistration && swRegistration.waiting) {
+          showUpdateToast(swRegistration.waiting);
+          if (label) label.innerText = '可更新！';
+        } else {
+          // System is completely up to date - notify user with green success toast!
+          showAppToast({
+            type: 'latest',
+            title: `目前已是最新版本 (v${encryptedManifestData?.version || '1.2.0'})`,
+            message: '所有展示模組與 PWA 資源均處於最新狀態，無須更新。',
+            badge: '最新狀態',
+            autoDismissMs: 3500
+          });
+
+          if (label) label.innerText = '已是最新';
+          if (icon) {
+            icon.classList.remove('animate-spin', 'text-cyan-400');
+            icon.classList.add('text-emerald-400');
+          }
+          setTimeout(() => {
+            if (label) label.innerText = '檢查更新';
+            if (icon) {
+              icon.classList.remove('text-emerald-400');
+              icon.classList.add('text-cyan-400');
+            }
+          }, 2500);
+        }
+      } catch (err) {
+        console.warn('Manual update check error:', err);
+        showAppToast({
+          type: 'warn',
+          title: '檢查未完成',
+          message: '目前處於離線狀態或連線逾時，系統將維持使用目前快取版本。',
+          badge: '離線快取',
+          autoDismissMs: 3500
+        });
+        if (label) label.innerText = '檢查失敗';
+        setTimeout(() => { if (label) label.innerText = '檢查更新'; }, 2000);
+      } finally {
+        if (icon) icon.classList.remove('animate-spin');
+        isCheckingManually = false;
+      }
+    }
+
+    // Connect manual check buttons
+    document.getElementById('manualCheckUpdateBtn')?.addEventListener('click', handleManualCheck);
+    document.getElementById('versionCard')?.addEventListener('click', handleManualCheck);
+    document.getElementById('lockStatusBtn')?.addEventListener('click', lockHub);
+
+    // Connect dismiss toast button
+    document.getElementById('toastDismissBtn')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      hideAppToast();
+    });
+
+    // Initial Load
+    loadDemos();
+    lucide.createIcons();
+  </script>
+
+  <!-- Dynamic Notification / Update Toast (Responsive Floating Card - Never Cuts Off) -->
+  <div id="appToast" class="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:bottom-6 sm:max-w-md z-50 p-4 rounded-2xl bg-slate-900/95 border border-cyan-500/50 shadow-2xl shadow-cyan-500/20 backdrop-blur-xl transform transition-all duration-300 translate-y-32 opacity-0 pointer-events-none flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
+    <div class="flex items-start sm:items-center gap-3">
+      <div id="toastIconContainer" class="w-9 h-9 rounded-xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 flex items-center justify-center shrink-0 mt-0.5 sm:mt-0">
+        <i data-lucide="sparkles" class="w-4 h-4"></i>
+      </div>
+      <div>
+        <h4 class="text-xs font-bold text-white flex items-center gap-1.5">
+          <span id="toastTitle">發現新版本！</span>
+          <span id="toastBadge" class="px-1.5 py-0.5 rounded text-[10px] bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-normal">可套用</span>
+        </h4>
+        <p id="toastMessage" class="text-[11px] text-slate-400 mt-0.5 leading-relaxed">系統已完成背景更新下載，立即套用以取得最新展示內容與修復。</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-2 shrink-0 justify-end pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-800/80">
+      <button id="toastActionBtn" type="button" class="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-white text-xs font-bold shadow-md shadow-cyan-500/25 transition active:scale-95 cursor-pointer">
+        <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+        <span>立即更新</span>
+      </button>
+      <button id="toastDismissBtn" type="button" class="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer" title="關閉" aria-label="關閉提示">
+        <i data-lucide="x" class="w-4 h-4 pointer-events-none"></i>
+      </button>
+    </div>
+  </div>
+</body>
+</html>
+

@@ -1,10 +1,11 @@
 {
   "name": "ku-visual-hub",
-  "version": "1.2.1",
+  "version": "1.4.0",
   "description": "Ku Visual Hub - 互動視覺化展示中心與全站加密保護",
   "scripts": {
     "encrypt": "node scripts/build-encrypted.js",
-    "build": "node scripts/build-encrypted.js"
+    "build": "node scripts/build-encrypted.js",
+    "verify": "node scripts/verify-integrity.js"
   },
   "keywords": [
     "visualization",
@@ -15,4 +16,3 @@
   "author": "Antigravity AI",
   "license": "MIT"
 }
-

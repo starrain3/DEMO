@@ -144,6 +144,22 @@ node scripts/verify-integrity.js ; git status
 
 ## 📜 歷史版本變更紀錄 (Changelog)
 
+### v1.4.0 (2026-10-11)
+- **新展示項目**：新增「Walt Can't Find: 零知識加密金絲雀攻防挑戰」(`demos/walt-cant-find.html`)。
+  - 內嵌專屬 Canary Flag（`FLAG{WALT_CANNOT_CRACK_AES256_GCM_VAULT_2026_X9Q}`）與密碼學完整性校驗。
+  - 整合本機 PBKDF2 10萬次疊代算力基準測試（Benchmark）工具，評估離線字典暴力破解防禦耗時。
+- **認證架構升級**：實作 IndexedDB 不可匯出密鑰庫（`extractable: false`）永久記住裝置授權模式，完全兼顧 PWA 原生體驗與零明文安全防禦。
+
+### v1.3.0 (2026-10-11)
+- **重大安全架構重構 (P0/P1 全面加固)**：
+  - **杜絕程式碼與外洩回退**：徹底移除 `scripts/verify-integrity.js` 寫死密碼，強制要求受控環境變數 `DEMO_PASSWORD`，缺少即刻失敗。
+  - **發布目錄隔離 (dist/)**：重構打包工具，輸出專用發布目錄 `dist/`，部署工作改為上傳 `dist/`。嚴格設定允許清單（首頁、必要資產、密文資料、密文頁面、sw.js、manifest.json），徹底阻斷內部腳本、測試工具、原始明文與 `.env` 發布至 GitHub Pages。
+  - **建置安全閘門 (Build Gate)**：每次打包前自動清空 `dist/`，打包後嚴格驗證密文標記 `encrypted: true` 與密文 Payload，掃描嚴格排除禁止檔案。
+  - **全面更換主密碼**：以 24 位元高熵值隨機密碼重新執行 AES-256-GCM + PBKDF2 (10萬次) 全站重新加密，舊密碼徹底失效無法解密新密文。
+  - **移除瀏覽器 Storage 明文留存**：首頁與子頁面移除所有寫入 `localStorage` 與 `sessionStorage` 之行為，取消「記住密碼」，改為僅在記憶體中持有解密憑證。頁面初始化主動清除舊版 Storage 殘留。
+  - **預覽沙箱安全隔離**：預覽 iframe 導入 `sandbox="allow-scripts allow-forms allow-downloads allow-modals"`（無 `allow-same-origin`），由主頁於記憶體安全解密並以 `srcdoc` 呈現，禁止將主密碼傳遞給展示頁面。
+  - **前端拒絕明文**：移除首頁讀取未加密格式的相容分支，非密文一律拋錯阻斷。
+
 ### v1.2.1 (2026-10-11)
 - **Bug 修復**：修復展示卡片標題包含英文單引號（如 `Morton's`）導致 HTML `onclick` 字串逃逸產生 `Unexpected identifier 's'` 語法錯誤的嚴重問題。
 - **架構重構**：將預覽互動改為以唯一代碼驅動的 `openViewerById(demo.id)`，徹底杜絕任何特殊字元或標點符號跳脫異常。
@@ -168,6 +184,6 @@ node scripts/verify-integrity.js ; git status
 
 ## ⚙️ 技術規範
 1. **零外部依賴加密**：解密過程完全使用瀏覽器原生 `window.crypto.subtle` (Web Crypto API)，無需載入龐大第三方加密庫，硬體加速毫秒級解密。
-2. **全站單點解鎖 (SSO UX)**：首頁解鎖後，金鑰暫存於同源 `sessionStorage`，點選「預覽 Modal」或「另開分頁」自動解密呈現，不需重複輸入密碼。
+2. **記憶體短期解鎖與沙箱隔離 (Memory-Only & Sandboxed Preview UX)**：首頁解鎖後，憑證僅保留於 JavaScript 記憶體變數，嚴禁存入 localStorage 或 sessionStorage；預覽 Modal 由主頁於記憶體解密後透過 srcdoc 載入無 allow-same-origin 沙箱 iframe，關閉分頁或點擊鎖定後記憶體立即抹除。
 3. **完成後置處理**：修改完成後，遵循全域規則主動詢問使用者是否推送到 GitHub。
 

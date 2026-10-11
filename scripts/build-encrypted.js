@@ -1,10 +1,12 @@
 /**
- * Ku Visual Hub - 全站 AES-256-GCM 自動化加密打包工具
+ * Ku Visual Hub - 全站 AES-256-GCM 自動化加密打包與 dist 建置工具
  * 
  * 作用：
- * 1. 讀取 src_data/demos.json 並以 AES-256-GCM + PBKDF2 加密為 data/demos.json
- * 2. 遍歷 src_demos/*.html，將原始視覺化頁面加密為包含獨立解密外殼的 demos/*.html
- * 3. 確保推送到 GitHub 的檔案全為高強度密文，只有持有主密碼者可在瀏覽器本地解密瀏覽。
+ * 1. 讀取本機受控 .env / DEMO_PASSWORD (禁止命令行明文參數傳遞以防止 shell 歷史洩漏)
+ * 2. 驗證密碼強度門檻 (長度 >= 16 碼且具備足夠熵值)
+ * 3. 讀取 src_data/demos.json 並以 AES-256-GCM + PBKDF2 (10萬次) 加密
+ * 4. 讀取 src_demos/*.html 並封裝為安全獨立解密外殼 (無 Storage 密碼儲存，記憶體單次解密)
+ * 5. 統一輸出至 dist/ 發布目錄，嚴格執行白名單 (Allowlist) 檢驗與建置閘門 (Build Gate)
  */
 
 const fs = require('fs');
@@ -14,27 +16,14 @@ const readline = require('readline');
 
 const ROOT_DIR = path.resolve(__dirname, '..');
 const SRC_DATA = path.join(ROOT_DIR, 'src_data', 'demos.json');
+const DIST_DIR = path.join(ROOT_DIR, 'dist');
 const DIST_DATA = path.join(ROOT_DIR, 'data', 'demos.json');
 const SRC_DEMOS_DIR = path.join(ROOT_DIR, 'src_demos');
 const DIST_DEMOS_DIR = path.join(ROOT_DIR, 'demos');
 const SW_PATH = path.join(ROOT_DIR, 'sw.js');
 const ENV_PATH = path.join(ROOT_DIR, '.env');
 
-// 解析命令列參數 --password=xxx 或 -p xxx
-function getPasswordFromArgs() {
-  const args = process.argv.slice(2);
-  for (let i = 0; i < args.length; i++) {
-    if (args[i].startsWith('--password=')) {
-      return args[i].split('=')[1];
-    }
-    if ((args[i] === '-p' || args[i] === '--password') && args[i + 1]) {
-      return args[i + 1];
-    }
-  }
-  return null;
-}
-
-// 讀取 .env 中的 DEMO_PASSWORD
+// 讀取 .env 中的 DEMO_PASSWORD (不支援命令行參數以杜絕 shell 歷史外洩)
 function getPasswordFromEnvFile() {
   if (fs.existsSync(ENV_PATH)) {
     const envContent = fs.readFileSync(ENV_PATH, 'utf8');
@@ -64,7 +53,7 @@ function encryptString(plaintext, password) {
   };
 }
 
-// 產生子頁面通用解密外殼 HTML
+// 產生子頁面通用解密外殼 HTML (移除所有 Storage 明文寫入，改為記憶體短期單次渲染)
 function generateDecryptorHtml(encryptedPayload, pageTitle) {
   const safeTitle = (pageTitle || '受保護的展示頁面')
     .replace(/&/g, '&amp;')
@@ -191,19 +180,6 @@ function generateDecryptorHtml(encryptedPayload, pageTitle) {
       padding: 0.25rem;
     }
     .toggle-pwd:hover { color: #94a3b8; }
-    .remember-wrap {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      margin-bottom: 1.25rem;
-      font-size: 0.8rem;
-      color: #94a3b8;
-      cursor: pointer;
-    }
-    .remember-wrap input {
-      accent-color: #0ea5e9;
-      cursor: pointer;
-    }
     .btn-submit {
       width: 100%;
       background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%);
@@ -233,6 +209,12 @@ function generateDecryptorHtml(encryptedPayload, pageTitle) {
       margin-top: 1rem;
       display: none;
     }
+    .security-note {
+      font-size: 0.75rem;
+      color: #64748b;
+      margin-top: 1rem;
+      line-height: 1.5;
+    }
     .back-link {
       display: inline-block;
       margin-top: 1.5rem;
@@ -242,23 +224,6 @@ function generateDecryptorHtml(encryptedPayload, pageTitle) {
       transition: color 0.2s;
     }
     .back-link:hover { color: #94a3b8; }
-    .hidden { display: none !important; }
-    .loading-pulse {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 1rem;
-      padding: 1.5rem 0;
-    }
-    .spinner {
-      width: 38px;
-      height: 38px;
-      border: 3px solid rgba(56, 189, 248, 0.2);
-      border-top-color: #38bdf8;
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
@@ -269,13 +234,13 @@ function generateDecryptorHtml(encryptedPayload, pageTitle) {
     <div class="page-name">${safeTitle}</div>
 
     <!-- 自動嘗試解密中提示 -->
-    <div id="loadingBox" class="loading-pulse">
-      <div class="spinner"></div>
-      <p style="margin: 0; font-size: 0.85rem; color: #38bdf8;">正在進行安全憑證驗證...</p>
+    <div id="loadingBox" style="display:flex;flex-direction:column;align-items:center;gap:1rem;padding:1.5rem 0;">
+      <div style="width:36px;height:36px;border:3px solid rgba(56,189,248,0.2);border-top-color:#38bdf8;border-radius:50%;animation:spin 0.8s linear infinite;"></div>
+      <p style="margin:0;font-size:0.85rem;color:#38bdf8;">正在進行本裝置安全憑證驗證...</p>
     </div>
+    <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
 
-    <!-- 手動輸入解密表單 -->
-    <div id="unlockFormBox" class="hidden">
+    <div id="unlockFormBox" style="display:none;">
       <p>本頁面已透過 AES-256-GCM 高強度加密。請輸入主密碼以解鎖檢視內容。</p>
 
       <form id="unlockForm" onsubmit="handleUnlock(event)">
@@ -287,13 +252,14 @@ function generateDecryptorHtml(encryptedPayload, pageTitle) {
           </div>
         </div>
 
-        <label class="remember-wrap">
-          <input type="checkbox" id="rememberMe" checked>
-          <span>在此瀏覽器保持解鎖狀態</span>
+        <label style="display:flex;align-items:center;gap:0.5rem;margin-bottom:1.25rem;font-size:0.8rem;color:#cbd5e1;cursor:pointer;">
+          <input type="checkbox" id="rememberDevice" style="accent-color:#0ea5e9;" checked>
+          <span>在此裝置永久保持解鎖（免重複輸入）</span>
         </label>
 
         <button type="submit" id="submitBtn" class="btn-submit">解鎖展示內容</button>
         <div id="errorMsg" class="error-msg"></div>
+        <div class="security-note">🛡️ 安全保護：採用 IndexedDB 不可匯出密鑰隔離，密碼本體絕不留存於 Storage</div>
       </form>
     </div>
 
@@ -306,6 +272,83 @@ function generateDecryptorHtml(encryptedPayload, pageTitle) {
 
   <script>
     const payload = JSON.parse(document.getElementById('__PAYLOAD__').textContent);
+
+    // ===== IndexedDB 不可匯出密鑰庫 (Device-Bound Non-Exportable Vault) =====
+    const VAULT_DB_NAME = 'KuHubVaultDB';
+    const VAULT_DB_VERSION = 1;
+    const VAULT_STORE_NAME = 'auth_vault';
+
+    function openVaultDB() {
+      return new Promise((resolve, reject) => {
+        const req = indexedDB.open(VAULT_DB_NAME, VAULT_DB_VERSION);
+        req.onupgradeneeded = (e) => {
+          const db = e.target.result;
+          if (!db.objectStoreNames.contains(VAULT_STORE_NAME)) {
+            db.createObjectStore(VAULT_STORE_NAME, { keyPath: 'id' });
+          }
+        };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+    }
+
+    async function saveDeviceAuth(password) {
+      try {
+        const db = await openVaultDB();
+        const deviceKey = await window.crypto.subtle.generateKey(
+          { name: 'AES-GCM', length: 256 },
+          false,
+          ['encrypt', 'decrypt']
+        );
+        const iv = window.crypto.getRandomValues(new Uint8Array(12));
+        const enc = new TextEncoder();
+        const ciphertext = await window.crypto.subtle.encrypt(
+          { name: 'AES-GCM', iv: iv },
+          deviceKey,
+          enc.encode(password)
+        );
+        const record = {
+          id: 'device_auth',
+          deviceKey: deviceKey,
+          iv: iv,
+          ciphertext: ciphertext,
+          expiresAt: null // 永久保留，直到手動點擊鎖定或密碼更換
+        };
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(VAULT_STORE_NAME, 'readwrite');
+          tx.objectStore(VAULT_STORE_NAME).put(record);
+          tx.oncomplete = () => resolve(true);
+          tx.onerror = () => reject(tx.error);
+        });
+      } catch (err) {
+        console.warn('saveDeviceAuth failed:', err);
+        return false;
+      }
+    }
+
+    async function getDeviceAuth() {
+      try {
+        const db = await openVaultDB();
+        const record = await new Promise((resolve, reject) => {
+          const tx = db.transaction(VAULT_STORE_NAME, 'readonly');
+          const req = tx.objectStore(VAULT_STORE_NAME).get('device_auth');
+          req.onsuccess = () => resolve(req.result);
+          req.onerror = () => reject(req.error);
+        });
+        if (!record) return null;
+        if (record.expiresAt && Date.now() > record.expiresAt) {
+          return null;
+        }
+        const decrypted = await window.crypto.subtle.decrypt(
+          { name: 'AES-GCM', iv: record.iv },
+          record.deviceKey,
+          record.ciphertext
+        );
+        return new TextDecoder().decode(decrypted);
+      } catch (err) {
+        return null;
+      }
+    }
 
     // 原生 Web Crypto API 解密
     async function decryptPayload(password, saltB64, ivB64, ctB64) {
@@ -362,7 +405,7 @@ function generateDecryptorHtml(encryptedPayload, pageTitle) {
       const input = document.getElementById('pwdInput');
       const submitBtn = document.getElementById('submitBtn');
       const errorMsg = document.getElementById('errorMsg');
-      const remember = document.getElementById('rememberMe').checked;
+      const remember = document.getElementById('rememberDevice').checked;
       const pwd = input.value.trim();
 
       if (!pwd) return;
@@ -373,15 +416,9 @@ function generateDecryptorHtml(encryptedPayload, pageTitle) {
 
       try {
         const decryptedHtml = await decryptPayload(pwd, payload.salt, payload.iv, payload.ciphertext);
-
-        // 成功！保存至儲存區實現全站暢行
-        sessionStorage.setItem('KU_DEMO_PASSWORD', pwd);
         if (remember) {
-          localStorage.setItem('KU_DEMO_PASSWORD', pwd);
-        } else {
-          localStorage.removeItem('KU_DEMO_PASSWORD');
+          await saveDeviceAuth(pwd);
         }
-
         renderDecryptedDocument(decryptedHtml);
       } catch (err) {
         console.error('Decryption failed:', err);
@@ -393,26 +430,27 @@ function generateDecryptorHtml(encryptedPayload, pageTitle) {
       }
     }
 
-    // 頁面初始化：自動檢查是否有已儲存的授權憑證
+    // 頁面初始化：嘗試自動從 IndexedDB 憑證解密
     (async function init() {
-      const savedPwd = sessionStorage.getItem('KU_DEMO_PASSWORD') || localStorage.getItem('KU_DEMO_PASSWORD');
+      try {
+        sessionStorage.removeItem('KU_DEMO_PASSWORD');
+        localStorage.removeItem('KU_DEMO_PASSWORD');
+      } catch (e) {}
+
+      const savedPwd = await getDeviceAuth();
       if (savedPwd) {
         try {
           const decryptedHtml = await decryptPayload(savedPwd, payload.salt, payload.iv, payload.ciphertext);
-          // 自動延續到 sessionStorage
-          sessionStorage.setItem('KU_DEMO_PASSWORD', savedPwd);
           renderDecryptedDocument(decryptedHtml);
           return;
         } catch (e) {
-          // 已儲存密碼失效，清除並要求重新輸入
-          sessionStorage.removeItem('KU_DEMO_PASSWORD');
-          localStorage.removeItem('KU_DEMO_PASSWORD');
+          console.warn('Saved auth invalid:', e);
         }
       }
 
-      // 無法自動解密，呈現手動輸入框
-      document.getElementById('loadingBox').classList.add('hidden');
-      document.getElementById('unlockFormBox').classList.remove('hidden');
+      const loadBox = document.getElementById('loadingBox');
+      if (loadBox) loadBox.style.display = 'none';
+      document.getElementById('unlockFormBox').style.display = 'block';
       document.getElementById('pwdInput').focus();
     })();
   </script>
@@ -429,14 +467,94 @@ function extractTitleFromHtml(html) {
   return '視覺化展示模組';
 }
 
+// 複製目錄小工具
+function copyDirSync(src, dest) {
+  fs.mkdirSync(dest, { recursive: true });
+  const entries = fs.readdirSync(src, { withFileTypes: true });
+  for (const entry of entries) {
+    const srcPath = path.join(src, entry.name);
+    const destPath = path.join(dest, entry.name);
+    if (entry.isDirectory()) {
+      copyDirSync(srcPath, destPath);
+    } else {
+      fs.copyFileSync(srcPath, destPath);
+    }
+  }
+}
+
+// 嚴格建置閘門驗證 (Build Gate Verification)
+function verifyDistDirectory(distDir) {
+  console.log('\n🔍 [驗證閘門] 執行 dist/ 發布目錄安全性與完整性檢查...');
+
+  // 1. 檢查 dist/data/demos.json 是否存在且為加密密文
+  const dataPath = path.join(distDir, 'data', 'demos.json');
+  if (!fs.existsSync(dataPath)) {
+    throw new Error('閘門檢查失敗：dist/data/demos.json 不存在！');
+  }
+  const manifest = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
+  if (!manifest.encrypted || !manifest.salt || !manifest.iv || !manifest.ciphertext) {
+    throw new Error('閘門檢查失敗：dist/data/demos.json 未加密或格式不完整！');
+  }
+  console.log('   ✅ [1/4] dist/data/demos.json 加密標記與密文結構正確');
+
+  // 2. 檢查 dist/demos/*.html 是否皆包含 Payload
+  const demosDir = path.join(distDir, 'demos');
+  if (!fs.existsSync(demosDir)) {
+    throw new Error('閘門檢查失敗：dist/demos 目錄不存在！');
+  }
+  const demoFiles = fs.readdirSync(demosDir).filter(f => f.endsWith('.html'));
+  if (demoFiles.length === 0) {
+    throw new Error('閘門檢查失敗：dist/demos 目錄下沒有任何展示子頁面！');
+  }
+  for (const f of demoFiles) {
+    const content = fs.readFileSync(path.join(demosDir, f), 'utf8');
+    if (!content.includes('<script id="__PAYLOAD__"') || !content.includes('AES-256-GCM')) {
+      throw new Error(`閘門檢查失敗：dist/demos/${f} 缺少密文 Payload 外殼！`);
+    }
+  }
+  console.log(`   ✅ [2/4] 所有 ${demoFiles.length} 個展示子頁面均完成獨立密文外殼封裝`);
+
+  // 3. 檢查 dist/ 是否嚴格符合允許清單 (嚴禁 scripts/, src_*, .env, .md)
+  function scanForbidden(dir) {
+    const list = fs.readdirSync(dir, { withFileTypes: true });
+    for (const item of list) {
+      const fullPath = path.join(dir, item.name);
+      const relPath = path.relative(distDir, fullPath).replace(/\\/g, '/');
+
+      // 嚴格禁止項目
+      if (item.name.startsWith('.env') ||
+          item.name.startsWith('src_') ||
+          item.name === 'scripts' ||
+          item.name.endsWith('.md') ||
+          (item.name.endsWith('.js') && relPath !== 'sw.js')) {
+        throw new Error(`閘門檢查失敗：發布目錄 dist 發現禁止檔案：${relPath}`);
+      }
+
+      if (item.isDirectory()) {
+        scanForbidden(fullPath);
+      }
+    }
+  }
+  scanForbidden(distDir);
+  console.log('   ✅ [3/4] dist/ 目錄排除清單檢查通過 (無 scripts/、無明文原始檔、無 .env)');
+
+  // 4. 檢查首頁 index.html 存在性
+  if (!fs.existsSync(path.join(distDir, 'index.html')) || !fs.existsSync(path.join(distDir, 'sw.js'))) {
+    throw new Error('閘門檢查失敗：dist/index.html 或 sw.js 缺失！');
+  }
+  console.log('   ✅ [4/4] 核心網站資產 (index.html, sw.js, manifest.json) 就緒');
+
+  console.log('🎉 [驗證閘門] 所有檢查 100% 通過，dist/ 符合安全發布規範！\n');
+}
+
 // 主執行函式
 async function main() {
   console.log('====================================================');
-  console.log('🛡️  Ku Visual Hub - 全站 AES-256 加密打包工具');
+  console.log('🛡️  Ku Visual Hub - 全站 AES-256 安全打包與 dist 建置');
   console.log('====================================================\n');
 
-  // 1. 取得主密碼
-  let password = getPasswordFromArgs() || getPasswordFromEnvFile();
+  // 1. 取得主密碼 (僅由環境變數讀取或互動輸入)
+  let password = getPasswordFromEnvFile();
 
   if (!password) {
     const rl = readline.createInterface({
@@ -445,34 +563,52 @@ async function main() {
     });
 
     password = await new Promise((resolve) => {
-      rl.question('🔑 請輸入要設定的全站解鎖主密碼 (Master Password)：', (ans) => {
+      rl.question('🔑 請輸入全站解鎖主密碼 (DEMO_PASSWORD)：', (ans) => {
         rl.close();
         resolve(ans.trim());
       });
     });
   }
 
-  if (!password || password.length < 4) {
-    console.error('❌ 錯誤：密碼長度不得少於 4 個字元！打包已終止。');
-    process.exit(1);
+  // 加強密碼強度門檻 (至少 16 字元)
+  if (!password || password.length < 16) {
+    console.error('❌ 錯誤：主密碼長度不得少於 16 個字元且必須具備高熵值！打包已終止。');
+    throw new Error('DEMO_PASSWORD must be at least 16 characters long');
   }
 
-  console.log('🔒 使用主密碼進行高強度 AES-256-GCM + PBKDF2 (100k rounds) 加密...\n');
-
-  // 確保輸出目錄存在
-  fs.mkdirSync(path.dirname(DIST_DATA), { recursive: true });
-  fs.mkdirSync(DIST_DEMOS_DIR, { recursive: true });
-
-  // 2. 加密 data/demos.json
-  if (!fs.existsSync(SRC_DATA)) {
-    console.error(`❌ 錯誤：找不到未加密清單原始檔：${SRC_DATA}`);
-    process.exit(1);
-  }
+  console.log('🔒 使用高強度主密碼執行 AES-256-GCM + PBKDF2 (100k rounds) 加密...\n');
 
   // 讀取 package.json 版號
   const PKG_PATH = path.join(ROOT_DIR, 'package.json');
   const pkgData = fs.existsSync(PKG_PATH) ? JSON.parse(fs.readFileSync(PKG_PATH, 'utf8')) : {};
-  const currentAppVersion = pkgData.version || '1.2.0';
+  const currentAppVersion = pkgData.version || '1.3.0';
+
+  // 2. 清理並建立 dist 目錄
+  console.log('🧹 [1/5] 清理並初始化 dist/ 目錄...');
+  if (fs.existsSync(DIST_DIR)) {
+    fs.rmSync(DIST_DIR, { recursive: true, force: true });
+  }
+  fs.mkdirSync(DIST_DIR, { recursive: true });
+  fs.mkdirSync(path.join(DIST_DIR, 'data'), { recursive: true });
+  fs.mkdirSync(path.join(DIST_DIR, 'demos'), { recursive: true });
+
+  // 確保本機根目錄 data 與 demos 也存在以保持本地相容性
+  fs.mkdirSync(path.dirname(DIST_DATA), { recursive: true });
+  fs.mkdirSync(DIST_DEMOS_DIR, { recursive: true });
+
+  // 3. 複製靜態允許資產至 dist/
+  console.log('📁 [2/5] 複製首頁與靜態資源至 dist/...');
+  fs.copyFileSync(path.join(ROOT_DIR, 'index.html'), path.join(DIST_DIR, 'index.html'));
+  fs.copyFileSync(path.join(ROOT_DIR, 'manifest.json'), path.join(DIST_DIR, 'manifest.json'));
+  if (fs.existsSync(path.join(ROOT_DIR, 'icons'))) {
+    copyDirSync(path.join(ROOT_DIR, 'icons'), path.join(DIST_DIR, 'icons'));
+  }
+
+  // 4. 加密 data/demos.json
+  if (!fs.existsSync(SRC_DATA)) {
+    console.error(`❌ 錯誤：找不到未加密清單原始檔：${SRC_DATA}`);
+    process.exit(1);
+  }
 
   const rawJsonContent = fs.readFileSync(SRC_DATA, 'utf8');
   const encryptedManifest = {
@@ -482,22 +618,25 @@ async function main() {
     ...encryptString(rawJsonContent, password)
   };
 
-  fs.writeFileSync(DIST_DATA, JSON.stringify(encryptedManifest, null, 2), 'utf8');
-  console.log(`✅ [1/3] 已成功加密展示清單 -> data/demos.json`);
+  const encJsonStr = JSON.stringify(encryptedManifest, null, 2);
+  fs.writeFileSync(DIST_DATA, encJsonStr, 'utf8');
+  fs.writeFileSync(path.join(DIST_DIR, 'data', 'demos.json'), encJsonStr, 'utf8');
+  console.log(`✅ [3/5] 已成功加密展示清單 -> data/demos.json 及 dist/data/demos.json`);
 
-  // 3. 加密所有 src_demos/*.html
+  // 5. 加密所有 src_demos/*.html
   if (!fs.existsSync(SRC_DEMOS_DIR)) {
     console.error(`❌ 錯誤：找不到子頁面原始目錄：${SRC_DEMOS_DIR}`);
     process.exit(1);
   }
 
   const demoFiles = fs.readdirSync(SRC_DEMOS_DIR).filter(f => f.endsWith('.html'));
-  console.log(`\n📦 [2/3] 開始加密 ${demoFiles.length} 個子頁面模組：`);
+  console.log(`\n📦 [4/5] 開始加密 ${demoFiles.length} 個子頁面模組：`);
 
   let count = 0;
   for (const file of demoFiles) {
     const srcFilePath = path.join(SRC_DEMOS_DIR, file);
     const distFilePath = path.join(DIST_DEMOS_DIR, file);
+    const distExportPath = path.join(DIST_DIR, 'demos', file);
 
     const rawHtml = fs.readFileSync(srcFilePath, 'utf8');
     const pageTitle = extractTitleFromHtml(rawHtml);
@@ -505,27 +644,32 @@ async function main() {
     const wrappedHtml = generateDecryptorHtml(encryptedPayload, pageTitle);
 
     fs.writeFileSync(distFilePath, wrappedHtml, 'utf8');
+    fs.writeFileSync(distExportPath, wrappedHtml, 'utf8');
     count++;
     console.log(`   └─ [${count}/${demoFiles.length}] 🔒 加密完成: demos/${file} (${pageTitle})`);
   }
 
-  // 4. 更新 sw.js 快取版本以保證 PWA 最新狀態
+  // 6. 更新 sw.js 快取版本並同步至 dist/
+  const newCacheVersion = `ku-visual-hub-v${currentAppVersion}-${Date.now().toString(36)}`;
   if (fs.existsSync(SW_PATH)) {
     let swContent = fs.readFileSync(SW_PATH, 'utf8');
-    const newVersion = `ku-visual-hub-v${currentAppVersion}-${Date.now().toString(36)}`;
-    swContent = swContent.replace(/const CACHE_NAME = ['"][^'"]+['"];/, `const CACHE_NAME = '${newVersion}';`);
+    swContent = swContent.replace(/const CACHE_NAME = ['"][^'"]+['"];/, `const CACHE_NAME = '${newCacheVersion}';`);
     fs.writeFileSync(SW_PATH, swContent, 'utf8');
-    console.log(`\n🔄 [3/3] 已更新 Service Worker 快取版本識別符: ${newVersion}`);
+    fs.writeFileSync(path.join(DIST_DIR, 'sw.js'), swContent, 'utf8');
+    console.log(`\n🔄 [5/5] 已更新 Service Worker 快取識別碼: ${newCacheVersion}`);
   }
 
-  console.log('\n====================================================');
-  console.log('🎉 全站加密打包完成！');
-  console.log('🔒 GitHub 遠端儲存庫將僅包含 AES-256 密文，原始碼受到完全保護。');
+  // 7. 執行建置閘門驗證
+  verifyDistDirectory(DIST_DIR);
+
+  console.log('====================================================');
+  console.log('🎉 建置打包與安全驗證全數完成！');
+  console.log(`📦 發布輸出目錄: ${DIST_DIR}`);
+  console.log('🔒 GitHub Pages 將僅上傳 dist/，完全杜絕任何測試代碼或明文外洩。');
   console.log('====================================================\n');
 }
 
 main().catch(err => {
-  console.error('打包過程發生未預期錯誤:', err);
+  console.error('打包建置過程發生錯誤:', err);
   process.exit(1);
 });
-

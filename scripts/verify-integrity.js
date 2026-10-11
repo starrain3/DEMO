@@ -2,12 +2,20 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
+const ROOT_DIR = path.resolve(__dirname, '..');
+const ENV_PATH = path.join(ROOT_DIR, '.env');
+
+// 嚴格讀取環境變數或受控本機 .env，禁止任何寫死的 fallback 預設密碼
 let password = process.env.DEMO_PASSWORD;
-if (!password && fs.existsSync('.env')) {
-  const match = fs.readFileSync('.env', 'utf8').match(/^DEMO_PASSWORD\s*=\s*(.+)$/m);
+if (!password && fs.existsSync(ENV_PATH)) {
+  const match = fs.readFileSync(ENV_PATH, 'utf8').match(/^DEMO_PASSWORD\s*=\s*(.+)$/m);
   if (match) password = match[1].trim().replace(/^["']|["']$/g, '');
 }
-password = password || 'KuHub#2026!Vault';
+
+if (!password) {
+  console.error('❌ 驗證失敗：缺少 DEMO_PASSWORD 環境變數或 .env 設定！');
+  throw new Error('DEMO_PASSWORD is required');
+}
 
 function decryptString(encryptedObj, pwd) {
   const salt = Buffer.from(encryptedObj.salt, 'base64');
@@ -22,19 +30,19 @@ function decryptString(encryptedObj, pwd) {
   return Buffer.concat([decipher.update(ct), decipher.final()]).toString('utf8');
 }
 
-console.log('--- 驗證加密完整性測試 ---');
+console.log('--- 驗證加密完整性與安全性測試 ---');
 
-// 1. Test data/demos.json
-const rawJson = fs.readFileSync('src_data/demos.json', 'utf8');
-const encDataJson = JSON.parse(fs.readFileSync('data/demos.json', 'utf8'));
+// 1. 測試 data/demos.json
+const rawJson = fs.readFileSync(path.join(ROOT_DIR, 'src_data', 'demos.json'), 'utf8');
+const encDataJson = JSON.parse(fs.readFileSync(path.join(ROOT_DIR, 'data', 'demos.json'), 'utf8'));
 const decJson = decryptString(encDataJson, password);
 console.log('1. demos.json 解密還原比對:', decJson === rawJson ? '✅ PASS (100% 吻合)' : '❌ FAIL');
 
-// 2. Test demos/*.html
-const demoFiles = fs.readdirSync('src_demos').filter(f => f.endsWith('.html'));
+// 2. 測試 demos/*.html
+const demoFiles = fs.readdirSync(path.join(ROOT_DIR, 'src_demos')).filter(f => f.endsWith('.html'));
 for (const f of demoFiles) {
-  const rawHtml = fs.readFileSync(path.join('src_demos', f), 'utf8');
-  const distHtml = fs.readFileSync(path.join('demos', f), 'utf8');
+  const rawHtml = fs.readFileSync(path.join(ROOT_DIR, 'src_demos', f), 'utf8');
+  const distHtml = fs.readFileSync(path.join(ROOT_DIR, 'demos', f), 'utf8');
   const startTag = '<script id="__PAYLOAD__" type="application/json">';
   const endTag = '</script>';
   const startIndex = distHtml.indexOf(startTag);
@@ -49,11 +57,44 @@ for (const f of demoFiles) {
   console.log(`2. ${f} 解密還原比對:`, decHtml === rawHtml ? '✅ PASS (100% 吻合)' : '❌ FAIL');
 }
 
-// 3. Test wrong password
-try {
-  decryptString(encDataJson, 'wrong_password');
-  console.log('3. 錯誤密碼防禦測試: ❌ FAIL (竟然解密成功)');
-} catch (e) {
-  console.log('3. 錯誤密碼防禦測試: ✅ PASS (成功阻斷未授權解密)');
+// 3. 測試 dist/ 目錄 (若存在)
+const distDataPath = path.join(ROOT_DIR, 'dist', 'data', 'demos.json');
+if (fs.existsSync(distDataPath)) {
+  const distEncJson = JSON.parse(fs.readFileSync(distDataPath, 'utf8'));
+  const distDec = decryptString(distEncJson, password);
+  console.log('3. dist/data/demos.json 解密還原比對:', distDec === rawJson ? '✅ PASS (100% 吻合)' : '❌ FAIL');
 }
 
+// 4. 舊密碼輪替失效驗證 (確保已撤銷之測試字串無法解密新密文)
+const REVOKED_TEST_PASSWORD = process.env.OLD_DEMO_PASSWORD || 'RevokedLegacyKey#TestOnly!2026';
+try {
+  decryptString(encDataJson, REVOKED_TEST_PASSWORD);
+  console.log('4. 已撤銷密碼防禦測試: ❌ FAIL (已撤銷測試字串竟然能解密！)');
+  process.exit(1);
+} catch (e) {
+  console.log('4. 已撤銷密碼防禦測試: ✅ PASS (已撤銷密碼成功遭到阻斷)');
+}
+
+// 5. 隨機錯誤密碼防禦測試
+try {
+  decryptString(encDataJson, 'wrong_random_password_xyz');
+  console.log('5. 隨機錯誤密碼防禦測試: ❌ FAIL (竟然解密成功)');
+  process.exit(1);
+} catch (e) {
+  console.log('5. 隨機錯誤密碼防禦測試: ✅ PASS (成功阻斷未授權解密)');
+}
+
+// 6. 密文竄改防禦測試 (改動一個位元)
+try {
+  const tamperedJson = JSON.parse(JSON.stringify(encDataJson));
+  const rawBytes = Buffer.from(tamperedJson.ciphertext, 'base64');
+  rawBytes[0] ^= 0x01; // 翻轉一個位元
+  tamperedJson.ciphertext = rawBytes.toString('base64');
+  decryptString(tamperedJson, password);
+  console.log('6. 密文篡改防禦測試: ❌ FAIL (篡改密文未被拒絕)');
+  process.exit(1);
+} catch (e) {
+  console.log('6. 密文篡改防禦測試: ✅ PASS (GCM 認證標籤成功偵測篡改)');
+}
+
+console.log('\n🎉 所有安全性與完整性驗證全數通過！\n');

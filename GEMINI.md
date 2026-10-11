@@ -144,6 +144,9 @@ node scripts/verify-integrity.js ; git status
 
 ## 📜 歷史版本變更紀錄 (Changelog)
 
+### v1.4.1 (2026-10-11)
+- **Bug 修復**：修復 `index.html` 內嵌 JavaScript 字串中包含未跳脫的 `</script>`，導致瀏覽器 HTML 解析器提前截斷關閉腳本標籤產生 SyntaxError，進而導致首頁一直停留在「載入中」骨架屏的嚴重問題。
+
 ### v1.4.0 (2026-10-11)
 - **新展示項目**：新增「Walt Can't Find: 零知識加密金絲雀攻防挑戰」(`demos/walt-cant-find.html`)。
   - 內嵌專屬 Canary Flag（`FLAG{WALT_CANNOT_CRACK_AES256_GCM_VAULT_2026_X9Q}`）與密碼學完整性校驗。

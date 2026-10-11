@@ -881,8 +881,8 @@
           const res = await fetch(url + '?_t=' + Date.now(), { cache: 'no-store' });
           if (res.ok) {
             const text = await res.text();
-            const startTag = '<script id="__PAYLOAD__" type="application/json">';
-            const endTag = '</script>';
+            const startTag = '<' + 'script id="__PAYLOAD__" type="application/json">';
+            const endTag = '<' + '/script>';
             const sIdx = text.indexOf(startTag);
             const eIdx = text.indexOf(endTag, sIdx);
             if (sIdx !== -1 && eIdx !== -1) {

@@ -469,10 +469,15 @@ async function main() {
     process.exit(1);
   }
 
+  // 讀取 package.json 版號
+  const PKG_PATH = path.join(ROOT_DIR, 'package.json');
+  const pkgData = fs.existsSync(PKG_PATH) ? JSON.parse(fs.readFileSync(PKG_PATH, 'utf8')) : {};
+  const currentAppVersion = pkgData.version || '1.2.0';
+
   const rawJsonContent = fs.readFileSync(SRC_DATA, 'utf8');
   const encryptedManifest = {
     encrypted: true,
-    version: '1.1.0',
+    version: currentAppVersion,
     updatedAt: new Date().toISOString(),
     ...encryptString(rawJsonContent, password)
   };
@@ -507,7 +512,7 @@ async function main() {
   // 4. 更新 sw.js 快取版本以保證 PWA 最新狀態
   if (fs.existsSync(SW_PATH)) {
     let swContent = fs.readFileSync(SW_PATH, 'utf8');
-    const newVersion = `ku-visual-hub-v1.1.0-${Date.now().toString(36)}`;
+    const newVersion = `ku-visual-hub-v${currentAppVersion}-${Date.now().toString(36)}`;
     swContent = swContent.replace(/const CACHE_NAME = ['"][^'"]+['"];/, `const CACHE_NAME = '${newVersion}';`);
     fs.writeFileSync(SW_PATH, swContent, 'utf8');
     console.log(`\n🔄 [3/3] 已更新 Service Worker 快取版本識別符: ${newVersion}`);

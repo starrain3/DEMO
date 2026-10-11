@@ -130,7 +130,7 @@
         </div>
         <div id="versionCard" class="px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl bg-slate-900/80 border border-slate-800/80 hover:border-cyan-500/50 text-center flex-1 sm:flex-initial min-w-[85px] sm:min-w-[100px] cursor-pointer transition group" title="點擊檢查最新版本">
           <div class="text-lg sm:text-xl font-bold text-indigo-400 group-hover:text-cyan-400 font-mono transition flex items-center justify-center gap-1">
-            <span>1.0.5</span>
+            <span id="appVersionDisplay">1.2.0</span>
             <i data-lucide="refresh-cw" class="w-3 h-3 opacity-0 group-hover:opacity-100 transition hidden sm:inline-block"></i>
           </div>
           <div class="text-[10px] sm:text-[11px] text-slate-500 group-hover:text-slate-300 mt-0.5 transition">版本 (點擊檢查)</div>
@@ -602,6 +602,11 @@
         if (!res.ok) throw new Error('Failed to load demos.json');
         const data = await res.json();
 
+        if (data.version) {
+          const verEl = document.getElementById('appVersionDisplay');
+          if (verEl) verEl.textContent = data.version;
+        }
+
         if (data.encrypted) {
           encryptedManifestData = data;
           const savedPwd = sessionStorage.getItem('KU_DEMO_PASSWORD') || localStorage.getItem('KU_DEMO_PASSWORD');
@@ -811,7 +816,7 @@
           // System is completely up to date - notify user with green success toast!
           showAppToast({
             type: 'latest',
-            title: '目前已是最新版本 (v1.0.4)',
+            title: `目前已是最新版本 (v${encryptedManifestData?.version || '1.2.0'})`,
             message: '所有展示模組與 PWA 資源均處於最新狀態，無須更新。',
             badge: '最新狀態',
             autoDismissMs: 3500

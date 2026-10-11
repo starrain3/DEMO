@@ -89,6 +89,12 @@
         <span>安裝 PWA</span>
       </button>
 
+      <!-- Lock / Logout Button -->
+      <button id="lockStatusBtn" class="hidden items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-rose-500/40 text-slate-300 hover:text-rose-400 text-xs font-medium transition active:scale-95" title="鎖定展示中心">
+        <i data-lucide="lock" class="w-3.5 h-3.5 text-rose-400"></i>
+        <span class="hidden sm:inline">鎖定</span>
+      </button>
+
       <!-- GitHub Link -->
       <a href="https://github.com/starrain3/DEMO" target="_blank" rel="noopener noreferrer" class="p-2 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white transition" title="GitHub Repository">
         <i data-lucide="github" class="w-4 h-4"></i>
@@ -135,37 +141,74 @@
 
   <!-- Main Content -->
   <main class="flex-1 max-w-7xl w-full mx-auto px-4 lg:px-8 py-6 space-y-6">
-    <!-- Filters & Search Toolbar -->
-    <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-      <!-- Category Pills -->
-      <div id="categoryContainer" class="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
-        <button data-category="ALL" class="cat-pill active px-3.5 py-1.5 rounded-lg text-xs font-semibold transition bg-cyan-500 text-white shadow-sm shadow-cyan-500/20">
-          全部項目
-        </button>
-        <button data-category="財務與籌碼" class="cat-pill px-3.5 py-1.5 rounded-lg text-xs font-semibold transition bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-800">
-          財務與籌碼
-        </button>
-        <button data-category="策略回測" class="cat-pill px-3.5 py-1.5 rounded-lg text-xs font-semibold transition bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-800">
-          策略回測
-        </button>
-        <button data-category="技術原型" class="cat-pill px-3.5 py-1.5 rounded-lg text-xs font-semibold transition bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-800">
-          技術原型
-        </button>
-      </div>
+    <!-- Unlock Gate Box (Displayed when encrypted repository is locked) -->
+    <div id="unlockGateBox" class="hidden py-8 sm:py-12 px-4 flex justify-center items-center">
+      <div class="w-full max-w-md bg-slate-900/90 border border-cyan-500/30 rounded-2xl p-6 sm:p-8 shadow-2xl shadow-cyan-500/10 backdrop-blur-xl text-center">
+        <div class="w-14 h-14 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-indigo-500/20 border border-cyan-500/30 flex items-center justify-center text-2xl shadow-lg shadow-cyan-500/10">
+          🔐
+        </div>
+        <h3 class="text-lg font-bold text-white tracking-wide">展示中心已加密保護</h3>
+        <p class="text-xs text-slate-400 mt-2 leading-relaxed">
+          所有視覺化展示項目與數據模型均已透過 AES-256 加密保護。<br>請輸入存取主密碼以解鎖儀表板。
+        </p>
 
-      <!-- Search Input -->
-      <div class="relative min-w-[240px]">
-        <i data-lucide="search" class="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2"></i>
-        <input id="searchInput" type="text" placeholder="搜尋視覺化名稱或標籤..." class="w-full bg-slate-900 border border-slate-800 rounded-lg pl-9 pr-4 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition">
+        <form id="hubUnlockForm" class="mt-6 text-left space-y-4" onsubmit="handleHubUnlock(event)">
+          <div>
+            <label for="hubPwdInput" class="block text-[11px] font-semibold text-slate-300 uppercase tracking-wider mb-1.5">存取主密碼</label>
+            <div class="relative flex items-center">
+              <input type="password" id="hubPwdInput" placeholder="請輸入解鎖密碼..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition" required>
+              <button type="button" onclick="toggleHubPwdVisibility()" class="absolute right-3 text-slate-500 hover:text-slate-300 transition text-sm" title="顯示/隱藏密碼">👁️</button>
+            </div>
+          </div>
+
+          <label class="flex items-center gap-2 text-xs text-slate-400 cursor-pointer">
+            <input type="checkbox" id="hubRememberMe" class="accent-cyan-500 rounded" checked>
+            <span>在此裝置記住解鎖狀態</span>
+          </label>
+
+          <button type="submit" id="hubUnlockBtn" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white text-xs font-bold shadow-lg shadow-cyan-500/20 transition active:scale-95">
+            解鎖展示中心
+          </button>
+
+          <div id="hubErrorMsg" class="hidden text-xs text-rose-400 bg-rose-500/10 border border-rose-500/20 rounded-lg p-2.5 text-center"></div>
+        </form>
       </div>
     </div>
 
-    <!-- Cards Grid -->
-    <div id="demosGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-      <!-- Loading skeleton -->
-      <div class="col-span-full py-16 text-center text-slate-500 text-sm flex flex-col items-center gap-3">
-        <i data-lucide="loader-2" class="w-6 h-6 animate-spin text-cyan-500"></i>
-        <span>正在載入展示清單...</span>
+    <!-- Unlocked Content Area -->
+    <div id="unlockedContentBox" class="space-y-6">
+      <!-- Filters & Search Toolbar -->
+      <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+        <!-- Category Pills -->
+        <div id="categoryContainer" class="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
+          <button data-category="ALL" class="cat-pill active px-3.5 py-1.5 rounded-lg text-xs font-semibold transition bg-cyan-500 text-white shadow-sm shadow-cyan-500/20">
+            全部項目
+          </button>
+          <button data-category="財務與籌碼" class="cat-pill px-3.5 py-1.5 rounded-lg text-xs font-semibold transition bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-800">
+            財務與籌碼
+          </button>
+          <button data-category="策略回測" class="cat-pill px-3.5 py-1.5 rounded-lg text-xs font-semibold transition bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-800">
+            策略回測
+          </button>
+          <button data-category="技術原型" class="cat-pill px-3.5 py-1.5 rounded-lg text-xs font-semibold transition bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-800">
+            技術原型
+          </button>
+        </div>
+
+        <!-- Search Input -->
+        <div class="relative min-w-[240px]">
+          <i data-lucide="search" class="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2"></i>
+          <input id="searchInput" type="text" placeholder="搜尋視覺化名稱或標籤..." class="w-full bg-slate-900 border border-slate-800 rounded-lg pl-9 pr-4 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition">
+        </div>
+      </div>
+
+      <!-- Cards Grid -->
+      <div id="demosGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <!-- Loading skeleton -->
+        <div class="col-span-full py-16 text-center text-slate-500 text-sm flex flex-col items-center gap-3">
+          <i data-lucide="loader-2" class="w-6 h-6 animate-spin text-cyan-500"></i>
+          <span>正在載入展示清單...</span>
+        </div>
       </div>
     </div>
   </main>
@@ -413,14 +456,173 @@
       document.getElementById('pwaInstallBtn').classList.add('hidden');
     });
 
-    // Fetch Demos
+    // Encryption & Hub Security State
+    let encryptedManifestData = null;
+
+    async function decryptPayload(password, saltB64, ivB64, ctB64) {
+      const salt = Uint8Array.from(atob(saltB64), c => c.charCodeAt(0));
+      const iv = Uint8Array.from(atob(ivB64), c => c.charCodeAt(0));
+      const ct = Uint8Array.from(atob(ctB64), c => c.charCodeAt(0));
+
+      const enc = new TextEncoder();
+      const keyMaterial = await window.crypto.subtle.importKey(
+        'raw',
+        enc.encode(password),
+        'PBKDF2',
+        false,
+        ['deriveKey']
+      );
+
+      const key = await window.crypto.subtle.deriveKey(
+        {
+          name: 'PBKDF2',
+          salt: salt,
+          iterations: 100000,
+          hash: 'SHA-256'
+        },
+        keyMaterial,
+        { name: 'AES-GCM', length: 256 },
+        false,
+        ['decrypt']
+      );
+
+      const decrypted = await window.crypto.subtle.decrypt(
+        { name: 'AES-GCM', iv: iv },
+        key,
+        ct
+      );
+
+      return new TextDecoder().decode(decrypted);
+    }
+
+    function setHubLockState(isLocked) {
+      const gate = document.getElementById('unlockGateBox');
+      const content = document.getElementById('unlockedContentBox');
+      const lockBtn = document.getElementById('lockStatusBtn');
+      const statEl = document.getElementById('statTotalDemos');
+
+      if (isLocked) {
+        gate.classList.remove('hidden');
+        gate.classList.add('flex');
+        content.classList.add('hidden');
+        lockBtn.classList.add('hidden');
+        lockBtn.classList.remove('flex');
+        statEl.innerText = '🔒';
+        allDemos = [];
+        renderDemos();
+      } else {
+        gate.classList.add('hidden');
+        gate.classList.remove('flex');
+        content.classList.remove('hidden');
+        lockBtn.classList.remove('hidden');
+        lockBtn.classList.add('flex');
+        statEl.innerText = allDemos.length;
+      }
+    }
+
+    function toggleHubPwdVisibility() {
+      const input = document.getElementById('hubPwdInput');
+      input.type = input.type === 'password' ? 'text' : 'password';
+    }
+
+    async function handleHubUnlock(event) {
+      event.preventDefault();
+      const input = document.getElementById('hubPwdInput');
+      const btn = document.getElementById('hubUnlockBtn');
+      const errEl = document.getElementById('hubErrorMsg');
+      const remember = document.getElementById('hubRememberMe').checked;
+      const pwd = input.value.trim();
+
+      if (!pwd || !encryptedManifestData) return;
+
+      btn.disabled = true;
+      btn.innerText = '正在驗證並解密...';
+      errEl.classList.add('hidden');
+
+      try {
+        const jsonStr = await decryptPayload(
+          pwd,
+          encryptedManifestData.salt,
+          encryptedManifestData.iv,
+          encryptedManifestData.ciphertext
+        );
+        allDemos = JSON.parse(jsonStr);
+
+        // 保存密碼至 sessionStorage (同源子頁面與預覽 iframe 自動共享)
+        sessionStorage.setItem('KU_DEMO_PASSWORD', pwd);
+        if (remember) {
+          localStorage.setItem('KU_DEMO_PASSWORD', pwd);
+        } else {
+          localStorage.removeItem('KU_DEMO_PASSWORD');
+        }
+
+        setHubLockState(false);
+        renderDemos();
+        btn.disabled = false;
+        btn.innerText = '解鎖展示中心';
+        input.value = '';
+        showAppToast({
+          type: 'latest',
+          title: '解密成功',
+          message: '已成功解鎖視覺化展示中心！',
+          badge: '已授權',
+          autoDismissMs: 2500
+        });
+      } catch (err) {
+        console.error('Hub unlock failed:', err);
+        errEl.innerText = '密碼錯誤，無法解密展示資料！';
+        errEl.classList.remove('hidden');
+        btn.disabled = false;
+        btn.innerText = '解鎖展示中心';
+        input.select();
+      }
+    }
+
+    function lockHub() {
+      sessionStorage.removeItem('KU_DEMO_PASSWORD');
+      localStorage.removeItem('KU_DEMO_PASSWORD');
+      setHubLockState(true);
+      showAppToast({
+        type: 'warn',
+        title: '展示中心已鎖定',
+        message: '已清除工作階段授權憑證。',
+        badge: '已鎖定',
+        autoDismissMs: 2500
+      });
+      setTimeout(() => document.getElementById('hubPwdInput')?.focus(), 100);
+    }
+
+    // Fetch Demos (支援未加密及 AES-256 加密格式)
     async function loadDemos() {
       try {
         const res = await fetch('./data/demos.json');
         if (!res.ok) throw new Error('Failed to load demos.json');
-        allDemos = await res.json();
-        document.getElementById('statTotalDemos').innerText = allDemos.length;
-        renderDemos();
+        const data = await res.json();
+
+        if (data.encrypted) {
+          encryptedManifestData = data;
+          const savedPwd = sessionStorage.getItem('KU_DEMO_PASSWORD') || localStorage.getItem('KU_DEMO_PASSWORD');
+          if (savedPwd) {
+            try {
+              const jsonStr = await decryptPayload(savedPwd, data.salt, data.iv, data.ciphertext);
+              allDemos = JSON.parse(jsonStr);
+              sessionStorage.setItem('KU_DEMO_PASSWORD', savedPwd);
+              setHubLockState(false);
+              renderDemos();
+              return;
+            } catch (e) {
+              console.warn('Saved password invalid, clearing:', e);
+              sessionStorage.removeItem('KU_DEMO_PASSWORD');
+              localStorage.removeItem('KU_DEMO_PASSWORD');
+            }
+          }
+          setHubLockState(true);
+        } else {
+          encryptedManifestData = null;
+          allDemos = data;
+          setHubLockState(false);
+          renderDemos();
+        }
       } catch (err) {
         console.error('Error loading demos:', err);
         document.getElementById('demosGrid').innerHTML = `
@@ -642,6 +844,7 @@
     // Connect manual check buttons
     document.getElementById('manualCheckUpdateBtn')?.addEventListener('click', handleManualCheck);
     document.getElementById('versionCard')?.addEventListener('click', handleManualCheck);
+    document.getElementById('lockStatusBtn')?.addEventListener('click', lockHub);
 
     // Connect dismiss toast button
     document.getElementById('toastDismissBtn')?.addEventListener('click', (e) => {

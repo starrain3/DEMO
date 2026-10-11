@@ -1,0 +1,13 @@
+# 本地原始明文檔案（嚴禁推送到 GitHub）
+src_demos/
+src_data/
+
+# 本機環境變數與金鑰設定
+.env
+.env.local
+
+# 系統與暫存檔
+.DS_Store
+Thumbs.db
+node_modules/
+

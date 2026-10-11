@@ -1,24 +1,8 @@
-[
-  {
-    "id": "bridge-architecture-vis",
-    "title": "VS Code Antigravity Bridge 架構與 Workflow 全景評審",
-    "category": "技術原型",
-    "description": "全方位視覺化評審 Bridge 的系統拓撲、三大核心 Workflow (探測/雙向通訊心跳/遠端指令)、狀態機演化與高韌性防呆機制。",
-    "tags": ["架構評審", "CDP", "Telegram Bot", "Workflow", "狀態機", "Mermaid"],
-    "url": "demos/bridge-architecture-vis.html",
-    "date": "2026-10-11",
-    "author": "Antigravity AI",
-    "badge": "最新評審"
-  },
-  {
-    "id": "sample-stock-vis",
-    "title": "籌碼動能與大戶持股視覺化",
-    "category": "財務與籌碼",
-    "description": "展示大戶持股比例趨勢、外資投信買賣超動能與股價多空對比之互動式圖表儀表板。",
-    "tags": ["籌碼動能", "ECharts", "互動圖表", "大戶持股"],
-    "url": "demos/sample-stock-vis.html",
-    "date": "2026-10-11",
-    "author": "Antigravity AI",
-    "badge": "精選示範"
-  }
-]
+{
+  "encrypted": true,
+  "version": "1.1.0",
+  "updatedAt": "2026-10-11T01:02:08.584Z",
+  "salt": "UTwM0mj4JCdNs1R2TuTpTQ==",
+  "iv": "OZ5khP/3i5DVm48z",
+  "ciphertext": "MOxbId6cYUQ3OWoTqf+1bfBZlrEcmb9uEsuuZtUKI4rpU2LgiwCvxbQ4/Zsom5BdomlXjgq0vNRMTQVrYb8Xg/37PEbeu2Bm8Dv9zlUPYFf+E8lzprowAANn8HttZd2wrcRMfaAiX8svMD46dOh9aiHHM2Qx0T8meK+kK9FDRIL07goL+q7eKWeSqWJXs+7zoIdjeHrTYWLJIk1MkOY/rE0zPb2MEafW3kToO9ZG6V9GpRzT1AwVNu62722i/AInDSKf5Tj4jPeMVBSKJIEqBrKJMTq3FkeR9NqCsuCmT8IWibS0HsMwVij0y/0cqxL6AlncAa3cMS4tTpvp/a/LcpfT7C57vHf7Fs/kgsNGr96XRla/PVbQtqxrk+okk2cbDxg+NO5QpeXlVpa4wn9UI8tVRgPIj+XuhVvcOT0t7VUSw9MN9z/j3wXiWvL1lTpf5jJXgJ8IiUVSR5t9t0sRQbY9V5mT3Ahpse/7YQ2wGnZeCsyNGzGBDPvIjAg3O+yb16ofyzt+/wLcA8nmd1rgd8AWH+XvL3kGuEcBm13c1d2Tqq7RPv5NuSR6EdB6wQI1kwWZ9fBvmspmnfB9nLC4FB8yk+03+NWu1IXx/tSwc3XD4CmjB4mKbTHpzTGJju2r2uQmGSNZPnLUsWFFSbr75qwwtT7onGBcIS7c8SAnNhQOOGBCHX4Z+LTkoPDiHsGP/qoRlotM34s45dwzP70thhZmppgpIRjrYa7UZVoNe5pEFOmgFAAHrO5sWRFMSl4FitQoIyPm1Wmw0FM92gluw0TC5zrm5AzM4hpaQl1ZD66OfV8lFEPEtpou2OaoIrEtABefWJzR65mPmzZlEIyDbUEsS09HMw6anUukUm6eh7bbUwnEFRqDHwHMuvACOf5NJfkAu8dlam9lWpSkrrV8l53aTG0BO3LkKJ0HYkIUNUzZOyTOoDdVb/qYSFKKd8GBMoaHAPLtESsPLOpzSw4kosngSzHueaBUpTuJNfFxFk0j0bpxqmwEpGoWf1xg6o/p5sXat5PVBDUVRWHuLle0xOSoH+BekOrY7DiMDYFFi1NbdGWSjUZZESjyIWnwyTF0faRqxy5K0cjX/8aCL59QcSM1AylC8WQYNw5Oy50x95RKjXBdHJ9KZ1VsftB3rB+Hl1f6igEd8Z1l5BEXpr08Fmy5c7HWBiSfBnbt3BqDa8js9kftaUSi0Ihp9Y/kj9YTkcwCjKZOML3isk6FPIBWz8NfdtKOyy9/LeKHN2RP4tz+702VJKaF9m3NK4zzppznH8mbq23TxIS4vpPDgGIIUwjotgmwbqpNi0WBNXpI2MiREai+tHBYRNShu7lJ8JykeiP771cTRHSUDQE9eq8COTcF1FNE11lCxY2R9IGj"
+}

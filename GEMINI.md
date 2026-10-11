@@ -184,6 +184,9 @@ npm run verify
 
 ## 📜 歷史版本變更紀錄 (Changelog)
 
+### v1.4.2 (2026-10-12)
+- **快取隔離修復**：修正 `sw.js` 在 `activate` 生命週期時清除舊快取的行為，嚴格限定僅刪除 `ku-visual-hub-` 前綴之舊版快取，徹底杜絕在 GitHub Pages 同源環境下誤刪其他子專案（如 reader、Money）離線快取的問題。
+
 ### v1.4.1 (2026-10-11)
 - **Bug 修復**：修復 `index.html` 內嵌 JavaScript 字串中包含未跳脫的 `</script>`，導致瀏覽器 HTML 解析器提前截斷關閉腳本標籤產生 SyntaxError，進而導致首頁一直停留在「載入中」骨架屏的嚴重問題。
 

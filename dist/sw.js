@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ku-visual-hub-v1.4.1-mv3qkxbg';
+const CACHE_NAME = 'ku-visual-hub-v1.4.2-mv422la6';
 
 const ASSETS_TO_CACHE = [
   './',
@@ -31,13 +31,13 @@ self.addEventListener('message', (event) => {
   }
 });
 
-// Activate: Clean up old cache versions
+// Activate: Clean up old cache versions (Scoped to ku-visual-hub- prefix only)
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cache) => {
-          if (cache !== CACHE_NAME) {
+          if (cache.startsWith('ku-visual-hub-') && cache !== CACHE_NAME) {
             console.log('[SW] Removing old cache:', cache);
             return caches.delete(cache);
           }

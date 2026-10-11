@@ -34,23 +34,28 @@ DEMO/
 ├── .gitignore                 # 嚴格排除 src_demos/、src_data/ 與 .env
 ├── src_demos/                 # 💻 本地未加密原始頁面 (本機開發專用，不上傳 GitHub)
 │   ├── bridge-architecture-vis.html
-│   └── sample-stock-vis.html
+│   ├── mortons-taipei-guide.html
+│   ├── sample-stock-vis.html
+│   ├── trending-repos-papers-vis.html
+│   └── walt-cant-find.html
 ├── src_data/                  # 💻 本地未加密清單原始檔 (本機專用，不上傳 GitHub)
 │   └── demos.json
 │
-├── scripts/                   # 🛠️ 自動化加密工具
-│   ├── build-encrypted.js     # AES-256-GCM + PBKDF2 打包腳本
-│   └── verify-integrity.js    # 解密還原度驗證腳本
+├── scripts/                   # 🛠️ 自動化加密與驗證工具 (不上傳至 GitHub Pages)
+│   ├── build-encrypted.js     # AES-256-GCM + PBKDF2 打包與建置閘門工具
+│   └── verify-integrity.js    # 解密還原度與防篡改安全性測試腳本
 │
-├── data/
-│   └── demos.json             # 🔒 加密後密文 (推送至 GitHub)
-├── demos/                     # 🔒 包含獨立解密外殼的加密子頁面 (推送至 GitHub)
-│   ├── bridge-architecture-vis.html
-│   └── sample-stock-vis.html
-├── icons/                     # PWA 圖示資源
-├── index.html                 # 🔐 具備安全解密門禁之 Hub 首頁
-├── manifest.json              # PWA Web App Manifest
-├── sw.js                      # Service Worker 離線快取控制
+├── dist/                      # 🚀 經安全審查之 GitHub Pages 唯一部署目錄 (包含密文與白名單前端)
+│   ├── index.html             # 🔐 具備安全門禁與不可匯出密鑰庫之 Hub 首頁
+│   ├── manifest.json          # PWA Web App Manifest
+│   ├── sw.js                  # Service Worker 快取控制
+│   ├── icons/                 # PWA 圖示資源
+│   ├── data/demos.json        # 🔒 加密密文
+│   └── demos/*.html           # 🔒 包含獨立解密外殼的加密子頁面
+│
+├── data/                      # 🔒 本地相容密文
+├── demos/                     # 🔒 本地相容加密子頁面
+├── index.html                 # 本地開發入口
 └── package.json               # 打包指令設定
 ```
 
@@ -72,7 +77,7 @@ DEMO/
 {
   "id": "my-strategy-vis",
   "title": "策略名稱或視覺化標題",
-  "category": "財務與籌碼" | "策略回測" | "技術原型" | "自訂分類",
+  "category": "財務與籌碼" | "策略回測" | "技術原型" | "美食與生活風格" | "自訂分類",
   "description": "簡要說明本視覺化呈現的重點內容與指標。",
   "tags": ["標籤1", "標籤2"],
   "url": "demos/my-strategy-vis.html",
@@ -83,27 +88,62 @@ DEMO/
 
 ### 步驟 3：檢查並更新版號 (Version Bumping)
 **在執行加密打包前，必須依變更幅度遞增 `package.json` 中的 `"version"`**：
-- 新增展示子頁面、新增分類或新功能 ➔ 升級次版號 (MINOR，例如 `1.1.0` ➔ `1.2.0`)。
-- 介面樣式微調、Bug 修復、文字調整 ➔ 升級修訂號 (PATCH，例如 `1.2.0` ➔ `1.2.1`)。
+- 新增展示子頁面、新增分類或新功能 ➔ 升級次版號 (MINOR，例如 `1.3.0` ➔ `1.4.0`)。
+- 介面樣式微調、Bug 修復、文字調整 ➔ 升級修訂號 (PATCH，例如 `1.4.0` ➔ `1.4.1`)。
 
-### 步驟 4：執行一鍵加密打包
+### 步驟 4：執行一鍵安全打包與建置
 在終端機執行：
 ```powershell
-npm run encrypt -- --password="您的主密碼"
-# 若有設定 .env 則可直接執行：
-# npm run encrypt
+npm run build
 ```
-腳本將自動：
-1. 自動讀取 `package.json` 中的版號寫入 `data/demos.json` 密文詮釋資料中。
-2. 將 `src_data/demos.json` 加密成 `data/demos.json`。
-3. 將所有 `src_demos/*.html` 加密為帶有解鎖外殼的 `demos/*.html`。
-4. 自動更新 `sw.js` 快取版本識別碼（`ku-visual-hub-v{version}-{timestamp}`）以觸發 PWA 背景更新。
+*(💡 密碼僅由本機受控 `.env` 讀取或互動輸入，嚴禁使用命令列參數傳遞以杜絕 shell 歷史外洩)*
 
-### 步驟 5：執行還原度驗證與推送
+腳本將自動：
+1. 自動讀取 `package.json` 中的版號寫入密文詮釋資料中。
+2. 將 `src_data/demos.json` 加密成 `data/demos.json` 及 `dist/data/demos.json`。
+3. 將所有 `src_demos/*.html` 加密為帶有獨立解鎖外殼的 `demos/*.html` 及 `dist/demos/*.html`。
+4. 自動更新 `sw.js` 快取版本識別碼（`ku-visual-hub-v{version}-{timestamp}`）。
+5. 執行發布目錄 `dist/` 嚴格建置閘門檢驗（掃描排除 scripts、原始碼與 .env）。
+
+### 步驟 5：執行還原度驗證與測試
 ```powershell
-node scripts/verify-integrity.js ; git status
+npm run verify
 ```
-確認無誤後，遵循全域規則主動詢問使用者是否推送到 GitHub。
+確認還原度、防篡改與舊密碼失效測試全數 100% PASS 後，遵循全域規則主動詢問使用者是否推送到 GitHub。
+
+---
+
+## 🛡️ 核心資安原則與黃金守則 (Security Architecture & Golden Rules)
+
+本專案採端對端零知識（Zero-Knowledge）防護，嚴格遵循以下六大黃金守則：
+
+### 1. 零寫死金鑰原則 (Zero Hardcoded Secrets)
+- 任何本機測試、自動化工具或輔助腳本中，**絕對嚴禁寫死任何 fallback 預設密碼**。
+- 缺少環境變數 `DEMO_PASSWORD` 時一律拋出 `throw new Error()` 即刻中斷。
+- 嚴禁透過命令列參數（如 `--password`）傳遞密碼，杜絕在系統行程表或 Shell 歷史紀錄中留下明文。
+
+### 2. 最小發布面與建置閘門原則 (Least Exposure & Build Gate)
+- GitHub Pages 發布源**嚴格限制為 `dist/` 目錄**，嚴禁以 `path: '.'` 發布全專案根目錄。
+- 內部工具（`scripts/`）、原始明文（`src_*`）、`.env*`、測試程式與非必要說明文件**絕對不進入 `dist/`**。
+- 打包工具內建「建置閘門（Build Gate）」，打包後自動驗證密文標記 `encrypted: true`，任一檢查不符即刻中止發布。
+
+### 3. 不可匯出密鑰庫原則 (Non-Exportable Key Vault)
+- 本地裝置長效授權一律透過原生 Web Crypto API 生成 `extractable: false` 之 AES 裝置金鑰，並封存於瀏覽器 `IndexedDB (KuHubVaultDB)`。
+- 密碼本體由該裝置金鑰加密後儲存，**絕不以純文字寫入 `localStorage` 或 `sessionStorage`**。
+- 任何外部或惡意腳本試圖執行 `exportKey()` 導出金鑰本體時，瀏覽器核心將強制拋錯阻斷。手動點擊「鎖定」時即刻抹除。
+
+### 4. 預覽沙箱安全隔離 (In-Memory Sandboxed Preview)
+- 預覽展示視窗採用 `iframe sandbox="allow-scripts allow-forms allow-downloads allow-modals"`，**刻意不給 `allow-same-origin`**。
+- 由已授權的主頁於記憶體安全解密後，透過 `srcdoc` 注入沙箱呈現，**嚴禁將主密碼傳遞給展示子頁面**。
+
+### 5. 行內腳本字串安全拼接 (Safe Script Tag Escaping)
+- 在 HTML 行內 JavaScript 程式碼中比對標籤字串時，**絕對不要出現未跳脫的 `</script>` 字串**（例如 `const endTag = '</script>';` 會導致 HTML 解析器提前結束腳本並產生語法錯誤）。
+- 一律採用字串拼接方式：`const endTag = '<' + '/script>';`。
+
+### 6. 抗已知明文攻擊 (KPA-Proof) 與高熵密鑰
+- AES-256-GCM 具備嚴格抗已知明文攻擊（KPA）保證，比對明文無法在數學上推算對稱金鑰。
+- 每次打包強制使用隨機 Salt（16 位元組）與隨機 IV（12 位元組）搭配 100,000 次 PBKDF2 疊代。
+- 主密碼必須維持 16 位元以上高熵值隨機字串（>120 bits 熵），徹底瓦解離線字典暴力破解。
 
 ---
 

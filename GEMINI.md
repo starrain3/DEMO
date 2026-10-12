@@ -224,6 +224,9 @@ npm run verify
   - **預覽沙箱安全隔離**：預覽 iframe 導入 `sandbox="allow-scripts allow-forms allow-downloads allow-modals"`（無 `allow-same-origin`），由主頁於記憶體安全解密並以 `srcdoc` 呈現，禁止將主密碼傳遞給展示頁面。
   - **前端拒絕明文**：移除首頁讀取未加密格式的相容分支，非密文一律拋錯阻斷。
 
+### v1.7.4 (2026-10-12)
+- **功能增強**：全面為 `okinawa-travel-journal.html` 沖繩遊記行程手冊中 15+ 處景點、美食餐廳、住宿飯店、休息站及機場周邊加油站標記 Google Maps 導航地標連結，並在自駕導航速查簿中整合一鍵地圖開啟功能。
+
 ### v1.7.3 (2026-10-12)
 - **Bug 修復**：修復 `okinawa-travel-journal.html` 中 Visual Analytics 圖表容器未設內聯最小高度導致 iframe 沙箱或異步載入時 ECharts 渲染塌陷的問題，加入 ResizeObserver 與多階段自適應重繪機制。
 

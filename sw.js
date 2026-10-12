@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ku-visual-hub-v1.13.0-mv56d5po';
+const CACHE_NAME = 'ku-visual-hub-v1.13.2-mv57bkwm';
 
 const ASSETS_TO_CACHE = [
   './',

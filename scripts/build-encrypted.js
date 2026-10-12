@@ -35,6 +35,41 @@ function getPasswordFromEnvFile() {
   return process.env.DEMO_PASSWORD || null;
 }
 
+// 讀取各子頁面專屬分享密碼 (格式: DEMO_SHARE_<KEY>=<VALUE>)
+function getSharePasswordsFromEnv() {
+  const shareMap = {};
+  if (fs.existsSync(ENV_PATH)) {
+    const lines = fs.readFileSync(ENV_PATH, 'utf8').split('\n');
+    for (const line of lines) {
+      const match = line.match(/^DEMO_SHARE_([A-Za-z0-9_]+)\s*=\s*(.+)$/);
+      if (match) {
+        const key = match[1].toLowerCase().replace(/_/g, '-');
+        const val = match[2].trim().replace(/^["']|["']$/g, '');
+        shareMap[key] = val;
+      }
+    }
+  }
+  for (const envKey of Object.keys(process.env)) {
+    if (envKey.startsWith('DEMO_SHARE_')) {
+      const key = envKey.substring(11).toLowerCase().replace(/_/g, '-');
+      shareMap[key] = process.env[envKey].trim().replace(/^["']|["']$/g, '');
+    }
+  }
+  return shareMap;
+}
+
+// 根據 demoId 比對是否存在專屬分享密碼
+function findSharePasswordForDemo(demoId, shareMap) {
+  if (shareMap[demoId]) return shareMap[demoId];
+  for (const [key, val] of Object.entries(shareMap)) {
+    if (demoId.startsWith(key) || demoId.includes(key)) {
+      return val;
+    }
+  }
+  return null;
+}
+
+
 // 核心加密函式：AES-256-GCM + PBKDF2 (SHA-256, 100,000 iterations)
 function encryptString(plaintext, password) {
   const salt = crypto.randomBytes(16);
@@ -53,15 +88,21 @@ function encryptString(plaintext, password) {
   };
 }
 
-// 產生子頁面通用解密外殼 HTML (移除所有 Storage 明文寫入，改為記憶體短期單次渲染)
-function generateDecryptorHtml(encryptedPayload, pageTitle) {
+// 產生子頁面通用解密外殼 HTML (支援主密碼與單頁專屬分享密碼雙軌解鎖)
+function generateDecryptorHtml(encryptedPayload, pageTitle, sharePayloads = []) {
   const safeTitle = (pageTitle || '受保護的展示頁面')
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
 
-  const payloadJson = JSON.stringify(encryptedPayload);
+  const hasShares = sharePayloads && sharePayloads.length > 0;
+  const fullPayload = {
+    ...encryptedPayload,
+    ...(hasShares ? { shares: sharePayloads } : {})
+  };
+
+  const payloadJson = JSON.stringify(fullPayload);
 
   return `<!DOCTYPE html>
 <html lang="zh-TW" class="dark">
@@ -241,7 +282,7 @@ function generateDecryptorHtml(encryptedPayload, pageTitle) {
     <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
 
     <div id="unlockFormBox" style="display:none;">
-      <p>本頁面已透過 AES-256-GCM 高強度加密。請輸入主密碼以解鎖檢視內容。</p>
+      <p>\${hasShares ? '本頁面已透過 AES-256-GCM 高強度加密保護。請輸入全站主密碼或本頁專屬分享密碼以解鎖檢視內容。' : '本頁面已透過 AES-256-GCM 高強度加密。請輸入主密碼以解鎖檢視內容。'}</p>
 
       <form id="unlockForm" onsubmit="handleUnlock(event)">
         <div class="form-group">
@@ -399,6 +440,24 @@ function generateDecryptorHtml(encryptedPayload, pageTitle) {
       input.type = input.type === 'password' ? 'text' : 'password';
     }
 
+    // 多重金鑰支援解密函式 (相容全站主密碼與專屬分享密碼)
+    async function tryDecryptAny(pwd) {
+      // 1. 優先嘗試主金鑰
+      try {
+        return await decryptPayload(pwd, payload.salt, payload.iv, payload.ciphertext);
+      } catch (err) {}
+
+      // 2. 嘗試各組專屬分享金鑰 (若有)
+      if (payload.shares && Array.isArray(payload.shares)) {
+        for (const share of payload.shares) {
+          try {
+            return await decryptPayload(pwd, share.salt, share.iv, share.ciphertext);
+          } catch (err) {}
+        }
+      }
+      throw new Error('All decryption attempts failed');
+    }
+
     // 手動提交解密表單
     async function handleUnlock(event) {
       event.preventDefault();
@@ -415,7 +474,7 @@ function generateDecryptorHtml(encryptedPayload, pageTitle) {
       errorMsg.style.display = 'none';
 
       try {
-        const decryptedHtml = await decryptPayload(pwd, payload.salt, payload.iv, payload.ciphertext);
+        const decryptedHtml = await tryDecryptAny(pwd);
         if (remember) {
           await saveDeviceAuth(pwd);
         }
@@ -440,7 +499,7 @@ function generateDecryptorHtml(encryptedPayload, pageTitle) {
       const savedPwd = await getDeviceAuth();
       if (savedPwd) {
         try {
-          const decryptedHtml = await decryptPayload(savedPwd, payload.salt, payload.iv, payload.ciphertext);
+          const decryptedHtml = await tryDecryptAny(savedPwd);
           renderDecryptedDocument(decryptedHtml);
           return;
         } catch (e) {
@@ -630,6 +689,7 @@ async function main() {
   }
 
   const demoFiles = fs.readdirSync(SRC_DEMOS_DIR).filter(f => f.endsWith('.html'));
+  const shareMap = getSharePasswordsFromEnv();
   console.log(`\n📦 [4/5] 開始加密 ${demoFiles.length} 個子頁面模組：`);
 
   let count = 0;
@@ -638,15 +698,24 @@ async function main() {
     const distFilePath = path.join(DIST_DEMOS_DIR, file);
     const distExportPath = path.join(DIST_DIR, 'demos', file);
 
+    const demoId = file.replace(/\.html$/, '');
+    const sharePassword = findSharePasswordForDemo(demoId, shareMap);
     const rawHtml = fs.readFileSync(srcFilePath, 'utf8');
     const pageTitle = extractTitleFromHtml(rawHtml);
     const encryptedPayload = encryptString(rawHtml, password);
-    const wrappedHtml = generateDecryptorHtml(encryptedPayload, pageTitle);
+
+    const sharePayloads = [];
+    if (sharePassword) {
+      sharePayloads.push(encryptString(rawHtml, sharePassword));
+    }
+
+    const wrappedHtml = generateDecryptorHtml(encryptedPayload, pageTitle, sharePayloads);
 
     fs.writeFileSync(distFilePath, wrappedHtml, 'utf8');
     fs.writeFileSync(distExportPath, wrappedHtml, 'utf8');
     count++;
-    console.log(`   └─ [${count}/${demoFiles.length}] 🔒 加密完成: demos/${file} (${pageTitle})`);
+    const shareTag = sharePassword ? ' [🔑 含專屬分享密碼]' : '';
+    console.log(`   └─ [${count}/${demoFiles.length}] 🔒 加密完成: demos/${file} (${pageTitle})${shareTag}`);
   }
 
   // 6. 更新 sw.js 快取版本並同步至 dist/

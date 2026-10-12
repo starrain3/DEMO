@@ -38,6 +38,22 @@ const encDataJson = JSON.parse(fs.readFileSync(path.join(ROOT_DIR, 'data', 'demo
 const decJson = decryptString(encDataJson, password);
 console.log('1. demos.json 解密還原比對:', decJson === rawJson ? '✅ PASS (100% 吻合)' : '❌ FAIL');
 
+function getSharePasswordForDemo(demoId) {
+  if (fs.existsSync(ENV_PATH)) {
+    const lines = fs.readFileSync(ENV_PATH, 'utf8').split('\n');
+    for (const line of lines) {
+      const match = line.match(/^DEMO_SHARE_([A-Za-z0-9_]+)\s*=\s*(.+)$/);
+      if (match) {
+        const key = match[1].toLowerCase().replace(/_/g, '-');
+        if (demoId.startsWith(key) || demoId.includes(key)) {
+          return match[2].trim().replace(/^["']|["']$/g, '');
+        }
+      }
+    }
+  }
+  return null;
+}
+
 // 2. 測試 demos/*.html
 const demoFiles = fs.readdirSync(path.join(ROOT_DIR, 'src_demos')).filter(f => f.endsWith('.html'));
 for (const f of demoFiles) {
@@ -54,7 +70,36 @@ for (const f of demoFiles) {
   const payloadJson = distHtml.substring(startIndex + startTag.length, endIndex).trim();
   const payload = JSON.parse(payloadJson);
   const decHtml = decryptString(payload, password);
-  console.log(`2. ${f} 解密還原比對:`, decHtml === rawHtml ? '✅ PASS (100% 吻合)' : '❌ FAIL');
+  console.log(`2. ${f} 主密碼解密還原比對:`, decHtml === rawHtml ? '✅ PASS (100% 吻合)' : '❌ FAIL');
+  if (decHtml !== rawHtml) process.exit(1);
+
+  // 若含有專屬分享金鑰，測試分享金鑰解密與隔離性
+  if (payload.shares && Array.isArray(payload.shares)) {
+    const sharePwd = getSharePasswordForDemo(f.replace(/\.html$/, ''));
+    if (sharePwd) {
+      let sharePass = false;
+      for (const share of payload.shares) {
+        try {
+          const decShareHtml = decryptString(share, sharePwd);
+          if (decShareHtml === rawHtml) {
+            sharePass = true;
+            break;
+          }
+        } catch (e) {}
+      }
+      console.log(`   └─ 🔑 專屬分享密碼解密比對:`, sharePass ? '✅ PASS (100% 吻合)' : '❌ FAIL');
+      if (!sharePass) process.exit(1);
+
+      // 權限隔離測試：確認分享密碼絕對無法解密全站清單 demos.json
+      try {
+        decryptString(encDataJson, sharePwd);
+        console.log(`   └─ 🛡️ 權限隔離測試: ❌ FAIL (分享密碼竟然能越權解密全站清單！)\n`);
+        process.exit(1);
+      } catch (e) {
+        console.log(`   └─ 🛡️ 權限隔離測試: ✅ PASS (成功阻斷分享密碼越權存取全站清單)`);
+      }
+    }
+  }
 }
 
 // 3. 測試 dist/ 目錄 (若存在)

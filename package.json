@@ -1,6 +1,6 @@
 {
   "name": "ku-visual-hub",
-  "version": "1.4.2",
+  "version": "1.5.0",
   "description": "Ku Visual Hub - 互動視覺化展示中心與全站加密保護",
   "scripts": {
     "encrypt": "node scripts/build-encrypted.js",

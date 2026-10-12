@@ -224,6 +224,9 @@ npm run verify
   - **預覽沙箱安全隔離**：預覽 iframe 導入 `sandbox="allow-scripts allow-forms allow-downloads allow-modals"`（無 `allow-same-origin`），由主頁於記憶體安全解密並以 `srcdoc` 呈現，禁止將主密碼傳遞給展示頁面。
   - **前端拒絕明文**：移除首頁讀取未加密格式的相容分支，非密文一律拋錯阻斷。
 
+### v1.7.6 (2026-10-12)
+- **Bug 修復 (避免跳出崩潰)**：移除外部連結事件處理器中潛在的 `window.top.location.href` 或 `window.location.href` 導航行為，確保外部地標連結皆以安全原生 `window.open(..., '_blank')` 彈出，徹底杜絕返回時展示中心或 iframe 崩潰（Crash / 灰屏）問題。
+
 ### v1.7.5 (2026-10-12)
 - **外部導航跳轉修復**：修復首頁預覽沙箱 iframe 缺少 `allow-popups` 與 `allow-popups-to-escape-sandbox` 權限導致 Google Maps 等外部地標點擊遭瀏覽器攔截無法開啟的問題；同時在沖繩遊記中補強全域外部連結開啟與降級相容機制。
 

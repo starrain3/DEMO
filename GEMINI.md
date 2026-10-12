@@ -224,6 +224,9 @@ npm run verify
   - **預覽沙箱安全隔離**：預覽 iframe 導入 `sandbox="allow-scripts allow-forms allow-downloads allow-modals"`（無 `allow-same-origin`），由主頁於記憶體安全解密並以 `srcdoc` 呈現，禁止將主密碼傳遞給展示頁面。
   - **前端拒絕明文**：移除首頁讀取未加密格式的相容分支，非密文一律拋錯阻斷。
 
+### v1.7.2 (2026-10-12)
+- **Bug 修復**：修復 `okinawa-travel-journal.html` 中 `filterDay(day)` 函式結尾遺漏閉合大括號 `}` 造成的語法錯誤（SyntaxError），確保 Day 1～Day 4 篩選按鈕與 AI 延伸私房攻略折疊切換正常運作。
+
 ### v1.2.1 (2026-10-11)
 - **Bug 修復**：修復展示卡片標題包含英文單引號（如 `Morton's`）導致 HTML `onclick` 字串逃逸產生 `Unexpected identifier 's'` 語法錯誤的嚴重問題。
 - **架構重構**：將預覽互動改為以唯一代碼驅動的 `openViewerById(demo.id)`，徹底杜絕任何特殊字元或標點符號跳脫異常。

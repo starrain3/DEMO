@@ -184,6 +184,12 @@ npm run verify
 
 ## 📜 歷史版本變更紀錄 (Changelog)
 
+### v1.15.0 (2026-10-16)
+- **新展示項目**：新增「OIP 土木工程內務處理系統 · 全端技術架構與零洩漏資安防護全景圖」(`demos/oip-architecture-vis.html`)。
+  - 全方位視覺化展示 OIP 商業 SaaS 系統之現代化全端架構（React 19 + Fastify + SQLite WAL 多租戶引擎）與雙重資安防禦成果。
+  - 內建互動式「未登入 vs 已通過 30 天密碼驗證」原始碼防洩漏攔截模擬器，清楚呈現 Vite `oipSourceGuardPlugin` 與 Fastify `onRequest` 守門員對 14 大工程模組與核心 `runtime.js` 的保護機制。
+  - 整合 Mermaid 全端拓撲圖、30 天免重複登入載入時序圖、14 大工程畫面分層過濾矩陣及 ECharts 架構升級前後五維度雷達對比圖。
+
 ### v1.14.1 (2026-10-14)
 - **內容增強（官方網站與即時訂房直達按鈕全面導入）**：為「宜蘭 6 房包棟民宿推薦與預算指南」(`demos/yilan-villa-6rooms-guide.html`) 中所有 5 間民宿卡片全面導入官方直達連結。
   - 沐丘 Villa：整合官方網站與 OwlNest 區塊鏈線上訂房系統、官方 LINE 及電話直撥。

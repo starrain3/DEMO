@@ -1,0 +1,33 @@
+{
+  "name": "沖繩4天3夜自駕手冊",
+  "short_name": "沖繩手冊",
+  "description": "沖繩自駕4天3夜質感遊記與智慧行程手冊，含景點地圖、電話GPS、美食備案與即時匯率。",
+  "id": "/DEMO/demos/okinawa-travel-journal.html",
+  "start_url": "./demos/okinawa-travel-journal.html",
+  "scope": "./demos/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#020617",
+  "theme_color": "#082f49",
+  "categories": ["travel", "navigation", "lifestyle"],
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

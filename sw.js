@@ -1,13 +1,15 @@
-const CACHE_NAME = 'ku-visual-hub-v1.18.7-mvj945ec';
+const CACHE_NAME = 'ku-visual-hub-v1.18.8-mvja0k3k';
 
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './manifest.json',
+  './manifest-okinawa.json',
   './data/demos.json',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/icon.svg',
+  './demos/okinawa-travel-journal.html',
   './demos/sample-stock-vis.html',
   './demos/bridge-architecture-vis.html',
   './demos/trending-repos-papers-vis.html',

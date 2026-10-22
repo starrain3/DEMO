@@ -89,7 +89,7 @@ function encryptString(plaintext, password) {
 }
 
 // 產生子頁面通用解密外殼 HTML (支援主密碼與單頁專屬分享密碼雙軌解鎖)
-function generateDecryptorHtml(encryptedPayload, pageTitle, sharePayloads = []) {
+function generateDecryptorHtml(encryptedPayload, pageTitle, sharePayloads = [], demoId = '') {
   const safeTitle = (pageTitle || '受保護的展示頁面')
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -104,6 +104,15 @@ function generateDecryptorHtml(encryptedPayload, pageTitle, sharePayloads = []) 
 
   const payloadJson = JSON.stringify(fullPayload);
 
+  const isOkinawa = demoId === 'okinawa-travel-journal';
+  const okinawaMeta = isOkinawa ? `
+  <link rel="manifest" href="../manifest-okinawa.json">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="沖繩自駕手冊">
+  <link rel="apple-touch-icon" href="../icons/icon-192.png">
+  <meta name="theme-color" content="#082f49">` : '';
+
   return `<!DOCTYPE html>
 <html lang="zh-TW" class="dark">
 <head>
@@ -111,7 +120,7 @@ function generateDecryptorHtml(encryptedPayload, pageTitle, sharePayloads = []) 
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>${safeTitle} - Ku Visual Hub (加密保護)</title>
   <meta name="robots" content="noindex, nofollow">
-  <link rel="icon" type="image/svg+xml" href="../icons/icon.svg">
+  <link rel="icon" type="image/svg+xml" href="../icons/icon.svg">${okinawaMeta}
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -659,6 +668,9 @@ async function main() {
   console.log('📁 [2/5] 複製首頁與靜態資源至 dist/...');
   fs.copyFileSync(path.join(ROOT_DIR, 'index.html'), path.join(DIST_DIR, 'index.html'));
   fs.copyFileSync(path.join(ROOT_DIR, 'manifest.json'), path.join(DIST_DIR, 'manifest.json'));
+  if (fs.existsSync(path.join(ROOT_DIR, 'manifest-okinawa.json'))) {
+    fs.copyFileSync(path.join(ROOT_DIR, 'manifest-okinawa.json'), path.join(DIST_DIR, 'manifest-okinawa.json'));
+  }
   if (fs.existsSync(path.join(ROOT_DIR, 'icons'))) {
     copyDirSync(path.join(ROOT_DIR, 'icons'), path.join(DIST_DIR, 'icons'));
   }
@@ -709,7 +721,7 @@ async function main() {
       sharePayloads.push(encryptString(rawHtml, sharePassword));
     }
 
-    const wrappedHtml = generateDecryptorHtml(encryptedPayload, pageTitle, sharePayloads);
+    const wrappedHtml = generateDecryptorHtml(encryptedPayload, pageTitle, sharePayloads, demoId);
 
     fs.writeFileSync(distFilePath, wrappedHtml, 'utf8');
     fs.writeFileSync(distExportPath, wrappedHtml, 'utf8');

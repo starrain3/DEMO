@@ -260,6 +260,7 @@
     let searchQuery = '';
     let deferredPrompt = null;
     let sessionMasterPassword = ''; // 僅於記憶體暫存，嚴禁存入 Storage
+    const decryptedMemoryCache = new Map(); // ⚡ 當次工作階段記憶體秒開快取池 (URL -> Decrypted HTML)
 
     // 主動清除舊版本殘留的本機儲存憑證
     (function cleanupLegacyStorage() {
@@ -695,6 +696,7 @@
       // 徹底清空記憶體憑證、IndexedDB 裝置授權與解密後資料
       sessionMasterPassword = '';
       allDemos = [];
+      decryptedMemoryCache.clear(); // 徹底銷毀記憶體中暫存的解密明文
       await clearDeviceAuth();
 
       const iframe = document.getElementById('viewerFrame');
@@ -875,6 +877,18 @@
       newTabBtn.href = url;
       modal.classList.remove('hidden');
 
+      // 精準計算相對於當前路徑之完整 URL，防止無結尾斜線時 base 偏差
+      const baseHref = window.location.href.split('?')[0].split('#')[0];
+      const baseUrl = baseHref.endsWith('/') ? baseHref : baseHref.substring(0, baseHref.lastIndexOf('/') + 1);
+      const targetUrl = new URL(url, baseUrl).href;
+
+      // ⚡ 方案 2：當次記憶體秒開快取檢查 (命中即 0 毫秒極速呈現)
+      if (decryptedMemoryCache.has(targetUrl)) {
+        iframe.removeAttribute('src');
+        iframe.srcdoc = decryptedMemoryCache.get(targetUrl);
+        return;
+      }
+
       // 若當前記憶體遺失密鑰，優先嘗試由裝置安全憑證自動補齊
       if (!sessionMasterPassword) {
         try {
@@ -885,12 +899,13 @@
       // 若具備解鎖密鑰，直接於本端記憶體解密 HTML 並透過 srcdoc 呈現於沙箱中 (徹底繞過 iframe 存取 IndexedDB 之限制)
       if (sessionMasterPassword) {
         try {
-          // 精準計算相對於當前路徑之完整 URL，防止無結尾斜線時 base 偏差
-          const baseHref = window.location.href.split('?')[0].split('#')[0];
-          const baseUrl = baseHref.endsWith('/') ? baseHref : baseHref.substring(0, baseHref.lastIndexOf('/') + 1);
-          const targetUrl = new URL(url, baseUrl).href;
+          // ⚡ 方案 1：優先走 Service Worker 本地快取 (無 no-store，秒讀 1.2MB 密文)
+          let res = await fetch(targetUrl);
+          if (!res.ok) {
+            // 若本地未命中，強制網路重試
+            res = await fetch(targetUrl + (targetUrl.includes('?') ? '&' : '?') + '_t=' + Date.now(), { cache: 'no-store' });
+          }
 
-          const res = await fetch(targetUrl + (targetUrl.includes('?') ? '&' : '?') + '_t=' + Date.now(), { cache: 'no-store' });
           if (res.ok) {
             const text = await res.text();
             const startTag = '<' + 'script id="__PAYLOAD__" type="application/json">';
@@ -905,6 +920,10 @@
                 payload.iv,
                 payload.ciphertext
               );
+
+              // 寫入當次工作階段記憶體快取池
+              decryptedMemoryCache.set(targetUrl, decryptedHtml);
+
               iframe.removeAttribute('src');
               iframe.srcdoc = decryptedHtml;
               return;
@@ -930,7 +949,15 @@
 
     document.getElementById('reloadIframeBtn').addEventListener('click', () => {
       const iframe = document.getElementById('viewerFrame');
-      if (iframe.src) iframe.src = iframe.src;
+      const newTabBtn = document.getElementById('modalNewTabBtn');
+      if (newTabBtn && newTabBtn.href) {
+        // 重整時清除當前頁面之記憶體快取，強制重新抓取與解密
+        decryptedMemoryCache.delete(newTabBtn.href);
+        const modalTitle = document.getElementById('modalTitle')?.innerText || '';
+        openViewer(newTabBtn.getAttribute('href'), modalTitle);
+      } else if (iframe.src) {
+        iframe.src = iframe.src;
+      }
     });
 
     // Category Filter Pills

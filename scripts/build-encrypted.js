@@ -330,15 +330,31 @@ function generateDecryptorHtml(encryptedPayload, pageTitle, sharePayloads = [], 
 
     function openVaultDB() {
       return new Promise((resolve, reject) => {
-        const req = indexedDB.open(VAULT_DB_NAME, VAULT_DB_VERSION);
-        req.onupgradeneeded = (e) => {
-          const db = e.target.result;
-          if (!db.objectStoreNames.contains(VAULT_STORE_NAME)) {
-            db.createObjectStore(VAULT_STORE_NAME, { keyPath: 'id' });
-          }
-        };
-        req.onsuccess = () => resolve(req.result);
-        req.onerror = () => reject(req.error);
+        const timer = setTimeout(() => reject(new Error('IndexedDB open timeout')), 1200);
+        try {
+          const req = indexedDB.open(VAULT_DB_NAME, VAULT_DB_VERSION);
+          req.onblocked = () => {
+            clearTimeout(timer);
+            reject(new Error('IndexedDB open blocked'));
+          };
+          req.onupgradeneeded = (e) => {
+            const db = e.target.result;
+            if (!db.objectStoreNames.contains(VAULT_STORE_NAME)) {
+              db.createObjectStore(VAULT_STORE_NAME, { keyPath: 'id' });
+            }
+          };
+          req.onsuccess = () => {
+            clearTimeout(timer);
+            resolve(req.result);
+          };
+          req.onerror = (e) => {
+            clearTimeout(timer);
+            reject(req.error || e);
+          };
+        } catch (err) {
+          clearTimeout(timer);
+          reject(err);
+        }
       });
     }
 
@@ -498,28 +514,55 @@ function generateDecryptorHtml(encryptedPayload, pageTitle, sharePayloads = [], 
       }
     }
 
-    // 頁面初始化：嘗試自動從 IndexedDB 憑證解密
+    // 頁面初始化：嘗試自動從 IndexedDB 憑證解密 (附帶安全閥強制回退)
     (async function init() {
+      let isUnlocked = false;
+
+      // 設置 1.8 秒強制防卡死安全閥：若超時未解密，強制切換至密碼輸入畫面
+      const fallbackTimer = setTimeout(() => {
+        if (!isUnlocked) {
+          const lb = document.getElementById('loadingBox');
+          const fb = document.getElementById('unlockFormBox');
+          if (lb) lb.style.display = 'none';
+          if (fb) {
+            fb.style.display = 'block';
+            const pwdIn = document.getElementById('pwdInput');
+            if (pwdIn) pwdIn.focus();
+          }
+        }
+      }, 1800);
+
       try {
         sessionStorage.removeItem('KU_DEMO_PASSWORD');
         localStorage.removeItem('KU_DEMO_PASSWORD');
       } catch (e) {}
 
-      const savedPwd = await getDeviceAuth();
-      if (savedPwd) {
-        try {
-          const decryptedHtml = await tryDecryptAny(savedPwd);
-          renderDecryptedDocument(decryptedHtml);
-          return;
-        } catch (e) {
-          console.warn('Saved auth invalid:', e);
+      try {
+        const savedPwd = await getDeviceAuth();
+        if (savedPwd) {
+          try {
+            const decryptedHtml = await tryDecryptAny(savedPwd);
+            isUnlocked = true;
+            clearTimeout(fallbackTimer);
+            renderDecryptedDocument(decryptedHtml);
+            return;
+          } catch (e) {
+            console.warn('Saved auth invalid:', e);
+          }
         }
+      } catch (err) {
+        console.warn('Device auth check error:', err);
       }
 
-      const loadBox = document.getElementById('loadingBox');
-      if (loadBox) loadBox.style.display = 'none';
-      document.getElementById('unlockFormBox').style.display = 'block';
-      document.getElementById('pwdInput').focus();
+      clearTimeout(fallbackTimer);
+      if (!isUnlocked) {
+        const loadBox = document.getElementById('loadingBox');
+        if (loadBox) loadBox.style.display = 'none';
+        const formBox = document.getElementById('unlockFormBox');
+        if (formBox) formBox.style.display = 'block';
+        const input = document.getElementById('pwdInput');
+        if (input) input.focus();
+      }
     })();
   </script>
 </body>

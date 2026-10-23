@@ -875,10 +875,22 @@
       newTabBtn.href = url;
       modal.classList.remove('hidden');
 
-      // 若在記憶體中具備解鎖密鑰，直接於本端記憶體解密 HTML 並透過 srcdoc 呈現於沙箱中 (禁止將密碼傳給展示頁面)
+      // 若當前記憶體遺失密鑰，優先嘗試由裝置安全憑證自動補齊
+      if (!sessionMasterPassword) {
+        try {
+          sessionMasterPassword = await getDeviceAuth();
+        } catch (e) {}
+      }
+
+      // 若具備解鎖密鑰，直接於本端記憶體解密 HTML 並透過 srcdoc 呈現於沙箱中 (徹底繞過 iframe 存取 IndexedDB 之限制)
       if (sessionMasterPassword) {
         try {
-          const res = await fetch(url + '?_t=' + Date.now(), { cache: 'no-store' });
+          // 精準計算相對於當前路徑之完整 URL，防止無結尾斜線時 base 偏差
+          const baseHref = window.location.href.split('?')[0].split('#')[0];
+          const baseUrl = baseHref.endsWith('/') ? baseHref : baseHref.substring(0, baseHref.lastIndexOf('/') + 1);
+          const targetUrl = new URL(url, baseUrl).href;
+
+          const res = await fetch(targetUrl + (targetUrl.includes('?') ? '&' : '?') + '_t=' + Date.now(), { cache: 'no-store' });
           if (res.ok) {
             const text = await res.text();
             const startTag = '<' + 'script id="__PAYLOAD__" type="application/json">';
